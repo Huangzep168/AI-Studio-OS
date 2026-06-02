@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Studio OS</title>
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--ink:#e6edf3;--muted:#8b949e;--green:#3fb950;--cyan:#58a6ff;--amber:#d29922;--red:#f85149;--purple:#bc8cff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC","Segoe UI",Arial,sans-serif}
+.wrap{max-width:1480px;margin:0 auto;padding:26px}
+h1{margin:0;font-size:26px;font-weight:700}
+h2{margin:0 0 14px;font-size:16px;font-weight:600;color:var(--cyan)}
+.sub{color:var(--muted);font-size:13px;margin:4px 0 0}
+.header{display:flex;justify-content:space-between;align-items:start;gap:18px;margin-bottom:24px}
+.header-right{text-align:right;font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px;position:relative}
+.card.active{border-color:var(--green)}
+.card.pending{border-color:var(--border)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-icon{font-size:22px}
+.card-status{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
+.status-active{background:#0a2e1a;color:var(--green)}
+.status-pending{background:#1c1c1c;color:var(--muted)}
+.card-title{font-size:16px;font-weight:600;margin:0;color:var(--ink)}
+.card-meta{font-size:12px;color:var(--muted);margin:6px 0}
+.card-desc{font-size:13px;color:var(--muted);line-height:1.5;margin:10px 0 0;max-height:60px;overflow:hidden}
+.card-next{font-size:12px;color:var(--amber);margin:8px 0 0;border-top:1px solid var(--border);padding-top:8px}
+.card-next strong{color:var(--ink)}
+.progress{display:flex;gap:6px;align-items:center;margin:8px 0}
+.progress-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s}
+.progress-text{font-size:11px;color:var(--muted);min-width:50px;text-align:right}
+
+.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.stat-card strong{display:block;font-size:32px;margin:6px 0}
+.stat-card span{font-size:12px;color:var(--muted)}
+.stat-card .num-green{color:var(--green)}
+.stat-card .num-red{color:var(--red)}
+.stat-card .num-amber{color:var(--amber)}
+.stat-card .num-cyan{color:var(--cyan)}
+
+.timeline{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px;margin-top:18px}
+.timeline-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.timeline-item:last-child{border:0}
+.timeline-time{color:var(--muted);font-size:11px;min-width:90px}
+.timeline-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.timeline-dot.green{background:var(--green)}
+.timeline-dot.cyan{background:var(--cyan)}
+.timeline-dot.amber{background:var(--amber)}
+.timeline-content{flex:1}
+.timeline-content strong{font-size:13px}
+.timeline-content p{font-size:12px;color:var(--muted);margin:2px 0 0}
+
+.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+
+@media(max-width:768px){
+  .summary-row{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h1>⚡ AI Studio OS</h1>
+      <p class="sub">多模型项目管理系统 — 统一调度 · 进度追踪 · 风险管理</p>
+    </div>
+    <div class="header-right">
+      数据来源: AI_WORKSPACE 目录<br>
+      更新于: 2026-06-02 14:00
+    </div>
+  </div>
+
+  <div class="summary-row" id="summaryRow">
+    <div class="stat-card"><span>项目总数</span><strong class="num-cyan" id="totalProjects">--</strong></div>
+    <div class="stat-card"><span>进行中</span><strong class="num-green" id="activeProjects">--</strong></div>
+    <div class="stat-card"><span>待启动</span><strong class="num-amber" id="pendingProjects">--</strong></div>
+    <div class="stat-card"><span>待完成任务</span><strong class="num-red" id="totalTasks">--</strong></div>
+  </div>
+
+  <div class="grid" id="projectGrid"></div>
+
+  <div class="timeline">
+    <h2>📋 最近更新</h2>
+    <div id="timelineBody">
+      <div class="empty-state">暂无活动记录</div>
+    </div>
+  </div>
+</div>
+<script>
+const DATA = {"01_出租率系统": {"name": "01_出租率系统", "icon": "📊", "status": "active", "tasks_todo": 4, "tasks_done": 1, "context_summary": "商业地产合同审计与出租率统计。扫描合同文件 → 提取结构化数据 → 评分并生成审计索引 → 构建 HTML 看板。\n", "handoff_summary": "- 提交 Git 仓库\n- 启动 02 合同整理系统\n"}, "02_合同整理系统": {"name": "02_合同整理系统", "icon": "📝", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "合同文件的自动化整理、归类、命名规范化。\n", "handoff_summary": "- 等待启动\n"}, "03_58运营系统": {"name": "03_58运营系统", "icon": "🏠", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "58同城等平台的运营自动化工具，包括房源发布、客户管理、数据统计。\n", "handoff_summary": "- 等待启动\n"}, "04_商业地产获客平台": {"name": "04_商业地产获客平台", "icon": "🎯", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "商业地产领域的获客系统，潜在客户挖掘、跟进管理、转化漏斗。\n", "handoff_summary": "- 等待启动\n"}, "05_AI工作流系统": {"name": "05_AI工作流系统", "icon": "🤖", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "多模型协作工作流系统，统一调度 Hermes/Codex/Claude/DeepSeek 等 AI 工具，实现任务分配、进度追踪、结果汇总。\n", "handoff_summary": "- 等待启动\n"}, "06_REITs研究": {"name": "06_REITs研究", "icon": "💰", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "REITs (房地产信托投资基金) 市场研究，数据收集与分析。\n", "handoff_summary": "- 等待启动\n"}, "AI_STUDIO_OS": {"name": "AI_STUDIO_OS", "icon": "⚡", "status": "active", "tasks_todo": 0, "tasks_done": 0, "context_summary": "", "handoff_summary": ""}};
+
+const projects = Object.values(DATA);
+const total = projects.length;
+const active = projects.filter(p => p.status === 'active').length;
+const pending = projects.filter(p => p.status === 'pending').length;
+const totalTasks = projects.reduce((s, p) => s + p.tasks_todo, 0);
+
+document.getElementById('totalProjects').textContent = total;
+document.getElementById('activeProjects').textContent = active;
+document.getElementById('pendingProjects').textContent = pending;
+document.getElementById('totalTasks').textContent = totalTasks;
+
+const grid = document.getElementById('projectGrid');
+projects.forEach(p => {
+  const done = p.tasks_done;
+  const todo = p.tasks_todo;
+  const all = done + todo;
+  const pct = all > 0 ? Math.round(done/all*100) : 0;
+
+  const card = document.createElement('div');
+  card.className = 'card ' + (p.status === 'active' ? 'active' : 'pending');
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div>
+        <span class="card-icon">${p.icon}</span>
+        <span class="card-title">${p.name}</span>
+      </div>
+      <span class="card-status ${p.status === 'active' ? 'status-active' : 'status-pending'}">${p.status === 'active' ? '● 进行中' : '○ 待启动'}</span>
+    </div>
+    <div class="card-meta">${p.tasks_done} 完成 / ${p.tasks_todo} 待办</div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <span class="progress-text">${pct}%</span>
+    </div>
+    ${p.context_summary ? '<div class="card-desc">' + p.context_summary.replace(/\n/g, '<br>') + '</div>' : ''}
+    ${p.handoff_summary ? '<div class="card-next"><strong>下一步:</strong> ' + p.handoff_summary.replace(/- /g, '').replace(/\n/g, '<br>') + '</div>' : ''}
+  `;
+  grid.appendChild(card);
+});
+
+// 时间线
+const timeline = document.getElementById('timelineBody');
+const events = [];
+const now = new Date();
+projects.forEach(p => {
+  events.push({time: '2026-06-02 13:58', project: p.name, action: '项目目录初始化', dot: 'cyan'});
+  events.push({time: '2026-06-02 12:12', project: '01_出租率系统', action: 'lzg_system_complete.html 看板重新生成', dot: 'green'});
+  events.push({time: '2026-06-02 11:30', project: '01_出租率系统', action: '旧看板分析，重新设计收入侧数据源', dot: 'amber'});
+});
+events.sort((a,b) => b.time.localeCompare(a.time));
+
+if (events.length) {
+  timeline.innerHTML = events.map(e =>
+    '<div class="timeline-item"><div class="timeline-time">' + e.time + '</div><div class="timeline-dot ' + e.dot + '"></div><div class="timeline-content"><strong>' + e.project + '</strong><p>' + e.action + '</p></div></div>'
+  ).join('');
+}
+</script>
+</body>
+</html>
