@@ -3,153 +3,101 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Studio OS</title>
+<title>AI Studio OS — 驾驶舱</title>
 <link rel="icon" href="data:,">
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--ink:#e6edf3;--muted:#8b949e;--green:#3fb950;--cyan:#58a6ff;--amber:#d29922;--red:#f85149;--purple:#bc8cff}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC","Segoe UI",Arial,sans-serif}
-.wrap{max-width:1480px;margin:0 auto;padding:26px}
-h1{margin:0;font-size:26px;font-weight:700}
-h2{margin:0 0 14px;font-size:16px;font-weight:600;color:var(--cyan)}
-.sub{color:var(--muted);font-size:13px;margin:4px 0 0}
-.header{display:flex;justify-content:space-between;align-items:start;gap:18px;margin-bottom:24px}
-.header-right{text-align:right;font-size:12px;color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px;position:relative}
-.card.active{border-color:var(--green)}
-.card.pending{border-color:var(--border)}
-.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.card-icon{font-size:22px}
-.card-status{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
-.status-active{background:#0a2e1a;color:var(--green)}
-.status-pending{background:#1c1c1c;color:var(--muted)}
-.card-title{font-size:16px;font-weight:600;margin:0;color:var(--ink)}
-.card-meta{font-size:12px;color:var(--muted);margin:6px 0}
-.card-desc{font-size:13px;color:var(--muted);line-height:1.5;margin:10px 0 0;max-height:60px;overflow:hidden}
-.card-next{font-size:12px;color:var(--amber);margin:8px 0 0;border-top:1px solid var(--border);padding-top:8px}
-.card-next strong{color:var(--ink)}
-.progress{display:flex;gap:6px;align-items:center;margin:8px 0}
-.progress-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s}
-.progress-text{font-size:11px;color:var(--muted);min-width:50px;text-align:right}
-
-.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
-.stat-card strong{display:block;font-size:32px;margin:6px 0}
-.stat-card span{font-size:12px;color:var(--muted)}
-.stat-card .num-green{color:var(--green)}
-.stat-card .num-red{color:var(--red)}
-.stat-card .num-amber{color:var(--amber)}
-.stat-card .num-cyan{color:var(--cyan)}
-
-.timeline{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px;margin-top:18px}
-.timeline-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
-.timeline-item:last-child{border:0}
-.timeline-time{color:var(--muted);font-size:11px;min-width:90px}
-.timeline-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.timeline-dot.green{background:var(--green)}
-.timeline-dot.cyan{background:var(--cyan)}
-.timeline-dot.amber{background:var(--amber)}
-.timeline-content{flex:1}
-.timeline-content strong{font-size:13px}
-.timeline-content p{font-size:12px;color:var(--muted);margin:2px 0 0}
-
-.empty-state{text-align:center;padding:40px;color:var(--muted);font-size:14px}
-
-@media(max-width:768px){
-  .summary-row{grid-template-columns:repeat(2,1fr)}
-  .grid{grid-template-columns:1fr}
-}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"Microsoft YaHei","PingFang SC","Segoe UI",Arial,sans-serif;font-size:14px;line-height:1.5}
+.wrap{max-width:1600px;margin:0 auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+h1{font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px}
+h1 small{font-size:12px;color:var(--muted);font-weight:400}
+.hr{text-align:right;font-size:12px;color:var(--muted)}
+.hr .rmt{color:var(--cyan);font-size:11px}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:24px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-align:center}
+.stat .num{font-size:28px;font-weight:700;line-height:1.2;margin:2px 0}
+.stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.gn{color:var(--green)}.cy{color:var(--cyan)}.am{color:var(--amber)}.rd{color:var(--red)}.pl{color:var(--purple)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:0;overflow:hidden;transition:border-color .2s}
+.card:hover{border-color:var(--muted)}
+.card.active{border-left:3px solid var(--green)}
+.card.pending{border-left:3px solid var(--muted)}
+.card.completed{border-left:3px solid var(--purple)}
+.c-hd{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 8px}
+.c-hd .ti{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;flex:1}
+.c-hd .ic{font-size:20px;margin-right:4px}
+.c-hd .bdg{font-size:10px;padding:2px 8px;border-radius:999px;font-weight:600}
+.bdg.act{background:#0a2e1a;color:var(--green);border:1px solid rgba(63,185,80,.3)}
+.bdg.pen{background:#1c1c1c;color:var(--muted);border:1px solid var(--border)}
+.bdg.cmp{background:#1c1124;color:var(--purple);border:1px solid rgba(188,140,255,.3)}
+.c-bd{padding:8px 16px 14px}
+.goal{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nxt{font-size:11px;color:var(--amber);margin-bottom:4px}
+.nxt b{color:var(--ink)}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0}
+.bt{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.bf{height:100%;border-radius:2px;transition:width .5s}
+.bf.gn{background:var(--green)}.bf.am{background:var(--amber)}.bf.pl{background:var(--purple)}
+.btx{font-size:10px;color:var(--muted);min-width:40px;text-align:right}
+.gitl{font-size:10px;color:var(--muted);margin-top:4px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px}
+.tl h2{font-size:14px;font-weight:600;color:var(--cyan);margin-bottom:14px}
+.tli{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);align-items:start}
+.tli:last-child{border:0}
+.tld{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.tld.c{background:var(--cyan)}
+.tlc{flex:1}
+.tlc .msg{font-size:12px;color:var(--ink2)}
+@media(max-width:768px){.stats{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="header">
-    <div>
-      <h1>⚡ AI Studio OS</h1>
-      <p class="sub">多模型项目管理系统 — 统一调度 · 进度追踪 · 风险管理</p>
-    </div>
-    <div class="header-right">
-      数据来源: AI_WORKSPACE 目录<br>
-      更新于: 2026-06-02 14:00
-    </div>
-  </div>
-
-  <div class="summary-row" id="summaryRow">
-    <div class="stat-card"><span>项目总数</span><strong class="num-cyan" id="totalProjects">--</strong></div>
-    <div class="stat-card"><span>进行中</span><strong class="num-green" id="activeProjects">--</strong></div>
-    <div class="stat-card"><span>待启动</span><strong class="num-amber" id="pendingProjects">--</strong></div>
-    <div class="stat-card"><span>待完成任务</span><strong class="num-red" id="totalTasks">--</strong></div>
-  </div>
-
-  <div class="grid" id="projectGrid"></div>
-
-  <div class="timeline">
-    <h2>📋 最近更新</h2>
-    <div id="timelineBody">
-      <div class="empty-state">暂无活动记录</div>
-    </div>
-  </div>
+<header>
+  <div><h1>⚡ AI Studio OS <small>驾驶舱</small></h1><span style="font-size:11px;color:var(--muted)">你 · Hermes · Codex · Claude · DeepSeek · ChatGPT</span></div>
+  <div class="hr">2026-06-02 14:40<br><span class="rmt">origin	https://github.com/Huangzep168/AI-Studio-OS.git (fetch)</span></div>
+</header>
+<div class="stats" id="sRow">
+  <div class="stat"><span class="lbl">项目总数</span><div class="num cy" id="sT">--</div></div>
+  <div class="stat"><span class="lbl">进行中</span><div class="num gn" id="sA">--</div></div>
+  <div class="stat"><span class="lbl">待启动</span><div class="num am" id="sP">--</div></div>
+  <div class="stat"><span class="lbl">已完成</span><div class="num pl" id="sC">--</div></div>
+  <div class="stat"><span class="lbl">待办任务</span><div class="num rd" id="sTk">--</div></div>
+  <div class="stat"><span class="lbl">提交次数</span><div class="num gn">1</div></div>
+</div>
+<div class="grid" id="pGrid"></div>
+<div class="tl"><h2>📋 Git 最近提交</h2><div id="tlBody"></div></div>
 </div>
 <script>
-const DATA = {"01_出租率系统": {"name": "01_出租率系统", "icon": "📊", "status": "active", "tasks_todo": 4, "tasks_done": 1, "context_summary": "商业地产合同审计与出租率统计。扫描合同文件 → 提取结构化数据 → 评分并生成审计索引 → 构建 HTML 看板。\n", "handoff_summary": "- 提交 Git 仓库\n- 启动 02 合同整理系统\n"}, "02_合同整理系统": {"name": "02_合同整理系统", "icon": "📝", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "合同文件的自动化整理、归类、命名规范化。\n", "handoff_summary": "- 等待启动\n"}, "03_58运营系统": {"name": "03_58运营系统", "icon": "🏠", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "58同城等平台的运营自动化工具，包括房源发布、客户管理、数据统计。\n", "handoff_summary": "- 等待启动\n"}, "04_商业地产获客平台": {"name": "04_商业地产获客平台", "icon": "🎯", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "商业地产领域的获客系统，潜在客户挖掘、跟进管理、转化漏斗。\n", "handoff_summary": "- 等待启动\n"}, "05_AI工作流系统": {"name": "05_AI工作流系统", "icon": "🤖", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "多模型协作工作流系统，统一调度 Hermes/Codex/Claude/DeepSeek 等 AI 工具，实现任务分配、进度追踪、结果汇总。\n", "handoff_summary": "- 等待启动\n"}, "06_REITs研究": {"name": "06_REITs研究", "icon": "💰", "status": "pending", "tasks_todo": 1, "tasks_done": 0, "context_summary": "REITs (房地产信托投资基金) 市场研究，数据收集与分析。\n", "handoff_summary": "- 等待启动\n"}, "AI_STUDIO_OS": {"name": "AI_STUDIO_OS", "icon": "⚡", "status": "active", "tasks_todo": 0, "tasks_done": 0, "context_summary": "", "handoff_summary": ""}};
-
-const projects = Object.values(DATA);
-const total = projects.length;
-const active = projects.filter(p => p.status === 'active').length;
-const pending = projects.filter(p => p.status === 'pending').length;
-const totalTasks = projects.reduce((s, p) => s + p.tasks_todo, 0);
-
-document.getElementById('totalProjects').textContent = total;
-document.getElementById('activeProjects').textContent = active;
-document.getElementById('pendingProjects').textContent = pending;
-document.getElementById('totalTasks').textContent = totalTasks;
-
-const grid = document.getElementById('projectGrid');
-projects.forEach(p => {
-  const done = p.tasks_done;
-  const todo = p.tasks_todo;
-  const all = done + todo;
-  const pct = all > 0 ? Math.round(done/all*100) : 0;
-
-  const card = document.createElement('div');
-  card.className = 'card ' + (p.status === 'active' ? 'active' : 'pending');
-
-  card.innerHTML = `
-    <div class="card-header">
-      <div>
-        <span class="card-icon">${p.icon}</span>
-        <span class="card-title">${p.name}</span>
-      </div>
-      <span class="card-status ${p.status === 'active' ? 'status-active' : 'status-pending'}">${p.status === 'active' ? '● 进行中' : '○ 待启动'}</span>
-    </div>
-    <div class="card-meta">${p.tasks_done} 完成 / ${p.tasks_todo} 待办</div>
-    <div class="progress">
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-      <span class="progress-text">${pct}%</span>
-    </div>
-    ${p.context_summary ? '<div class="card-desc">' + p.context_summary.replace(/\n/g, '<br>') + '</div>' : ''}
-    ${p.handoff_summary ? '<div class="card-next"><strong>下一步:</strong> ' + p.handoff_summary.replace(/- /g, '').replace(/\n/g, '<br>') + '</div>' : ''}
-  `;
-  grid.appendChild(card);
+const D = {"01_出租率系统": {"id": "01_出租率系统", "name": "01_出租率系统", "status": "active", "icon": "📊", "tasks_todo": 4, "tasks_done": 1, "goal": "", "next_step": "提交 Git 仓库；启动 02 合同整理系统；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "02_合同整理系统": {"id": "02_合同整理系统", "name": "02_合同整理系统", "status": "active", "icon": "📝", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "03_58运营系统": {"id": "03_58运营系统", "name": "03_58运营系统", "status": "active", "icon": "🏠", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "04_商业地产获客平台": {"id": "04_商业地产获客平台", "name": "04_商业地产获客平台", "status": "active", "icon": "🎯", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "05_AI工作流系统": {"id": "05_AI工作流系统", "name": "05_AI工作流系统", "status": "active", "icon": "🤖", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "06_REITs研究": {"id": "06_REITs研究", "name": "06_REITs研究", "status": "active", "icon": "💰", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "AI_STUDIO_OS": {"id": "AI_STUDIO_OS", "name": "AI_STUDIO_OS", "status": "pending", "icon": "⚡", "tasks_todo": 0, "tasks_done": 0, "goal": "", "next_step": "", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}};
+const P = Object.values(D);
+document.getElementById('sT').textContent = P.length;
+document.getElementById('sA').textContent = P.filter(p=>p.status==='active').length;
+document.getElementById('sP').textContent = P.filter(p=>p.status==='pending').length;
+document.getElementById('sC').textContent = P.filter(p=>p.status==='completed').length;
+document.getElementById('sTk').textContent = P.reduce((s,p)=>s+p.tasks_todo,0);
+const g = document.getElementById('pGrid');
+P.forEach(p => {
+  const al = p.tasks_done + p.tasks_todo;
+  const pc = al > 0 ? Math.round(p.tasks_done/al*100) : 0;
+  const bc = pc >= 80 ? 'gn' : pc >= 30 ? 'am' : '';
+  const bd = p.status==='active'?'act':p.status==='completed'?'cmp':'pen';
+  const bt = p.status==='active'?'● 进行中':p.status==='completed'?'● 已完成':'○ 待启动';
+  const nx = p.next_step ? '<div class="nxt">→ <b>下一步:</b> '+p.next_step+'</div>' : '';
+  const gl = p.git_log ? '<div class="gitl">'+p.git_log+'</div>' : '';
+  const gl2 = p.goal ? '<div class="goal">'+p.goal.slice(0,120)+'</div>' : '';
+  g.innerHTML += '<div class="card '+p.status+'"><div class="c-hd"><div class="ti"><span class="ic">'+p.icon+'</span>'+p.name+'</div><span class="bdg '+bd+'">'+bt+'</span></div><div class="c-bd">'+gl2+nx+'<div class="bar"><div class="bt"><div class="bf '+bc+'" style="width:'+pc+'%"></div></div><span class="btx">'+p.tasks_done+'/'+al+' ('+pc+'%)</span></div>'+gl+'</div></div>';
 });
-
-// 时间线
-const timeline = document.getElementById('timelineBody');
-const events = [];
-const now = new Date();
-projects.forEach(p => {
-  events.push({time: '2026-06-02 13:58', project: p.name, action: '项目目录初始化', dot: 'cyan'});
-  events.push({time: '2026-06-02 12:12', project: '01_出租率系统', action: 'lzg_system_complete.html 看板重新生成', dot: 'green'});
-  events.push({time: '2026-06-02 11:30', project: '01_出租率系统', action: '旧看板分析，重新设计收入侧数据源', dot: 'amber'});
-});
-events.sort((a,b) => b.time.localeCompare(a.time));
-
-if (events.length) {
-  timeline.innerHTML = events.map(e =>
-    '<div class="timeline-item"><div class="timeline-time">' + e.time + '</div><div class="timeline-dot ' + e.dot + '"></div><div class="timeline-content"><strong>' + e.project + '</strong><p>' + e.action + '</p></div></div>'
-  ).join('');
+const commits = `b42b5e7 feat: AI_WORKSPACE 初始搭建`;
+const tlb = document.getElementById('tlBody');
+if (commits.trim()) {
+  tlb.innerHTML = commits.split('\n').filter(Boolean).map(l => {
+    const m = l.match(/^([a-f0-9]+) (.+)$/);
+    return m ? '<div class="tli"><div class="tld c"></div><div class="tlc"><div class="msg"><code style="color:var(--amber)">'+m[1]+'</code> '+m[2]+'</div></div></div>' : '';
+  }).join('');
 }
 </script>
 </body>
