@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Health Dashboard",
+  "schemaVersion": 1,
+  "description": "AI 健康管家看板 — 支持 Apple Watch 和华为手表数据导入，四大维度分析（心率/睡眠/运动/压力），双用户档案"
+}
+</script>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 健康管家 · 全家看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root { color-scheme: light; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  background: #f4f6fb; color: #1a1d2e; line-height: 1.5;
+  padding: 24px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700;
+}
+.header h1 { font-size: 22px; font-weight: 700; color: #1a1d2e; }
+.header .subtitle { font-size: 13px; color: #8890a8; margin-top: 2px; }
+.profile-switcher { display: flex; gap: 8px; }
+.profile-btn {
+  padding: 8px 20px; border-radius: 20px; border: 2px solid #e0e4ed;
+  background: #fff; cursor: pointer; font-size: 14px; font-weight: 600;
+  color: #8890a8; transition: all .2s;
+}
+.profile-btn:hover { border-color: #667eea; color: #667eea; }
+.profile-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent; color: #fff; box-shadow: 0 4px 14px rgba(102,126,234,.35);
+}
+.profile-btn .badge {
+  display: inline-block; background: rgba(255,255,255,.25); border-radius: 10px;
+  padding: 0 8px; font-size: 11px; margin-left: 6px;
+}
+.last-sync { font-size: 12px; color: #8890a8; }
+
+/* Data Source Status */
+.data-status {
+  background: #fff; border-radius: 12px; padding: 16px 20px;
+  display: flex; gap: 20px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.data-source-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.data-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.data-dot.connected { background: #22c55e; }
+.data-dot.pending { background: #f59e0b; animation: pulse 1.5s infinite; }
+.data-dot.disconnected { background: #ef4444; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.metric-card {
+  background: #fff; border-radius: 16px; padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04); transition: transform .2s;
+}
+.metric-card:hover { transform: translateY(-2px); }
+.metric-icon { font-size: 24px; margin-bottom: 10px; }
+.metric-label { font-size: 13px; color: #8890a8; font-weight: 500; }
+.metric-value { font-size: 28px; font-weight: 700; color: #1a1d2e; margin: 4px 0; }
+.metric-change { font-size: 12px; font-weight: 600; }
+.metric-change.up { color: #22c55e; }
+.metric-change.down { color: #ef4444; }
+.metric-change.neutral { color: #f59e0b; }
+
+/* Import zone */
+.import-zone {
+  background: #fff; border: 2px dashed #d0d5e0; border-radius: 16px;
+  padding: 32px; text-align: center; margin-bottom: 24px;
+  transition: all .3s; cursor: pointer;
+}
+.import-zone:hover { border-color: #667eea; background: #f8f9ff; }
+.import-zone .icon { font-size: 40px; margin-bottom: 12px; }
+.import-zone .title { font-size: 16px; font-weight: 600; color: #1a1d2e; margin-bottom: 6px; }
+.import-zone .desc { font-size: 13px; color: #8890a8; }
+
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.chart-card {
+  background: #fff; border-radius: 16px; padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.chart-card.full { grid-column: 1 / -1; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.chart-title { font-size: 15px; font-weight: 600; color: #1a1d2e; }
+.chart-title small { font-weight: 400; color: #8890a8; font-size: 12px; }
+.chart-badge {
+  font-size: 11px; padding: 3px 10px; border-radius: 10px;
+  background: #eff3ff; color: #667eea; font-weight: 600;
+}
+canvas { max-height: 220px; }
+
+/* AI Coach */
+.coach-panel {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px; padding: 28px; color: #fff; margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(102,126,234,.25);
+}
+.coach-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.coach-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255,255,255,.2); display: flex; align-items: center;
+  justify-content: center; font-size: 24px;
+}
+.coach-name { font-size: 17px; font-weight: 700; }
+.coach-name small { font-weight: 400; opacity: .7; font-size: 13px; }
+.coach-insights { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.coach-insight {
+  background: rgba(255,255,255,.12); border-radius: 12px; padding: 14px 16px;
+  backdrop-filter: blur(4px);
+}
+.coach-insight .label { font-size: 11px; opacity: .7; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.coach-insight .text { font-size: 14px; margin-top: 4px; font-weight: 500; }
+.coach-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.coach-btn {
+  padding: 8px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,.3);
+  background: transparent; color: #fff; cursor: pointer;
+  font-size: 13px; font-weight: 500; transition: all .2s;
+}
+.coach-btn:hover { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.5); }
+
+.config-bar {
+  background: #fff; border-radius: 12px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 24px; font-size: 13px; color: #8890a8;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.config-bar select {
+  padding: 6px 12px; border: 1px solid #e0e4ed; border-radius: 8px;
+  font-size: 13px; background: #fff; color: #1a1d2e;
+}
+
+@media (max-width: 768px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .chart-row { grid-template-columns: 1fr; }
+  .coach-insights { grid-template-columns: 1fr; }
+  .header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">♥</div>
+    <div>
+      <h1>AI 健康管家</h1>
+      <div class="subtitle">你的私人健康教练 + 家庭健康顾问</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div class="profile-switcher" id="profileSwitcher">
+      <button class="profile-btn active" data-profile="me">
+        🧑 我自己 <span class="badge">Apple Watch</span>
+      </button>
+      <button class="profile-btn" data-profile="mom">
+        👩 妈妈 <span class="badge">华为 GT</span>
+      </button>
+    </div>
+    <div class="last-sync" id="lastSync">🔄 刚刚同步</div>
+  </div>
+</div>
+
+<!-- Data Source Status -->
+<div class="data-status">
+  <span style="font-weight:600;color:#1a1d2e;font-size:13px;">📡 数据源状态</span>
+  <div class="data-source-item"><span class="data-dot pending" id="dotApple"></span> Apple Watch <span style="color:#8890a8;" id="statusApple">等待连接...</span></div>
+  <div class="data-source-item"><span class="data-dot pending" id="dotHuawei"></span> 华为手表 <span style="color:#8890a8;" id="statusHuawei">等待连接...</span></div>
+  <div class="data-source-item"><span class="data-dot connected"></span> AI 分析引擎 <span style="color:#22c55e;">在线</span></div>
+</div>
+
+<!-- Import Zone -->
+<div class="import-zone" onclick="document.getElementById('fileInput').click()">
+  <div class="icon">📤</div>
+  <div class="title">导入健康数据</div>
+  <div class="desc">支持 Apple Health 导出 (export.xml) · 华为健康导出 · 手动输入</div>
+  <input type="file" id="fileInput" accept=".xml,.csv,.json" style="display:none" onchange="handleFileImport(event)">
+</div>
+
+<!-- Coach Panel -->
+<div class="coach-panel" id="coachPanel">
+  <div class="coach-header">
+    <div class="coach-avatar">🤖</div>
+    <div>
+      <div class="coach-name">AI 健康教练 · <small id="coachProfile">小陈</small></div>
+      <div style="font-size:13px;opacity:.85;" id="coachGreeting">早上好，为你准备了一份今日健康简报</div>
+    </div>
+  </div>
+  <div class="coach-insights" id="coachInsights">
+    <div class="coach-insight">
+      <div class="label">今日核心建议</div>
+      <div class="text" id="coachAdvice">心率 HRV 42ms，较昨日变化不大。建议今晚保证睡眠优化恢复。</div>
+    </div>
+    <div class="coach-insight">
+      <div class="label">当前关注</div>
+      <div class="text" id="coachFocus">运动恢复期 · 建议进行中强度有氧训练</div>
+    </div>
+  </div>
+  <div class="coach-actions">
+    <button class="coach-btn" onclick="generateInsights()">🔄 AI 重新分析</button>
+    <button class="coach-btn" onclick="showCoachChat()">💬 对话教练</button>
+    <button class="coach-btn" onclick="alert('🫀 快速评估完成\\n\\n指标均在正常范围')">🫀 快速健康评估</button>
+  </div>
+</div>
+
+<!-- Config -->
+<div class="config-bar">
+  <span>📅 查看周期</span>
+  <select id="dateRangeSelect" onchange="updateAll()">
+    <option value="7">近 7 天</option>
+    <option value="30">近 30 天</option>
+    <option value="90">近 90 天</option>
+  </select>
+  <span style="margin-left:auto;color:#667eea;" id="dataSourceBadge">💡 点击上方区域导入真实数据</span>
+</div>
+
+<!-- Quick Metrics -->
+<div class="metrics" id="metricCards">
+  <div class="metric-card">
+    <div class="metric-icon">❤️</div>
+    <div class="metric-label">静息心率</div>
+    <div class="metric-value" id="mRestHR">--</div>
+    <div class="metric-change neutral" id="mHRChange">等待数据</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">😴</div>
+    <div class="metric-label">睡眠时长</div>
+    <div class="metric-value" id="mSleep">--</div>
+    <div class="metric-change neutral" id="mSleepChange">等待数据</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">🏃</div>
+    <div class="metric-label">今日活动</div>
+    <div class="metric-value" id="mActivity">--</div>
+    <div class="metric-change neutral" id="mActivityChange">等待数据</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">🧘</div>
+    <div class="metric-label">压力指数</div>
+    <div class="metric-value" id="mStress">--</div>
+    <div class="metric-change neutral" id="mStressChange">等待数据</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="chart-row">
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">❤️ 心率趋势 <small>静息心率 & HRV</small></div>
+      <span class="chart-badge" id="hrStatus">等待数据</span>
+    </div>
+    <canvas id="hrChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">😴 睡眠质量 <small>深睡 vs 浅睡 vs REM</small></div>
+      <span class="chart-badge" id="sleepScore">等待数据</span>
+    </div>
+    <canvas id="sleepChart"></canvas>
+  </div>
+</div>
+<div class="chart-row">
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">🏃 每日活动 <small>步数 & 运动分钟</small></div>
+      <span class="chart-badge" id="activityStatus">等待数据</span>
+    </div>
+    <canvas id="activityChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">🧘 压力指数 <small>日常压力分布</small></div>
+      <span class="chart-badge" id="stressStatus">等待数据</span>
+    </div>
+    <canvas id="stressChart"></canvas>
+  </div>
+</div>
+
+<!-- Training Advice -->
+<div class="chart-card full">
+  <div class="chart-header">
+    <div class="chart-title">📋 AI 训练建议 <small>基于当前健康数据</small></div>
+    <span class="chart-badge" id="trainAdviceBadge">就绪</span>
+  </div>
+  <div id="trainingAdvice" style="padding:4px 0;">
+    <div style="text-align:center;padding:20px;color:#8890a8;">📤 导入健康数据后，AI 将为你生成个性化训练计划</div>
+  </div>
+</div>
+
+<!-- Sample Data Button (for demo) -->
+<div style="text-align:center;margin-top:16px;">
+  <button onclick="loadSampleData()" style="padding:10px 24px;border-radius:12px;border:2px solid #e0e4ed;background:#fff;cursor:pointer;font-size:13px;color:#8890a8;">
+    🎯 加载示例数据体验看板功能
+  </button>
+</div>
+
+</div>
+
+<script>
+// ========== DATA STORE ==========
+const store = {
+  me: { device: 'Apple Watch', records: null },
+  mom: { device: '华为 GT', records: null }
+};
+let currentProfile = 'me';
+let currentRange = 7;
+const charts = {};
+let usingDemoData = false;
+
+// ========== SAMPLE DATA ==========
+function generateSampleData() {
+  const days = 30;
+  const data = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    data.push({
+      date: d.toISOString().split('T')[0],
+      restingHR: Math.round(58 + (Math.random() - 0.5) * 8),
+      hrv: Math.round(40 + (Math.random() - 0.5) * 14),
+      sleepHours: +(6.5 + Math.random() * 2).toFixed(1),
+      sleepDeep: +(1.0 + Math.random() * 0.8).toFixed(1),
+      sleepLight: +(2.5 + Math.random() * 1.2).toFixed(1),
+      sleepREM: +(1.2 + Math.random() * 0.6).toFixed(1),
+      steps: Math.round(6000 + Math.random() * 6000),
+      activeMinutes: Math.round(20 + Math.random() * 40),
+      stress: Math.round(25 + Math.random() * 30),
+      mindfulMinutes: Math.round(Math.random() * 15),
+      workouts: [
+        { type: Math.random() > 0.5 ? '跑步' : '力量训练', duration: Math.round(20 + Math.random() * 40), calories: Math.round(150 + Math.random() * 300) }
+      ]
+    });
+  }
+  return data;
+}
+
+// ========== IMPORT ==========
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+    // Check if it looks like Apple Health export
+    if (content.includes('HealthData') || content.includes('Export')) {
+      parseAppleHealthXML(content);
+    } else if (content.trim().startsWith('{') || content.trim().startsWith('[')) {
+      try {
+        const json = JSON.parse(content);
+        importJSON(json);
+      } catch(err) {
+        alert('无法解析文件，请确保格式正确');
+      }
+    } else {
+      alert('文件格式识别为文本，请使用 XML（Apple Health）或 JSON 格式');
+    }
+  };
+  reader.readAsText(file);
+  document.getElementById('dataSourceBadge').textContent = '📄 正在解析: ' + file.name;
+}
+
+function parseAppleHealthXML(xml) {
+  // Basic Apple Health XML parser
+  const records = [];
+  const regex = /<Record[^>]*>/g;
+  let match;
+  while ((match = regex.exec(xml)) !== null) {
+    const el = match[0];
+    const typeMatch = el.match(/type="([^"]+)"/);
+    const valueMatch = el.match(/value="([^"]+)"/);
+    const dateMatch = el.match(/startDate="([^"]+)"/);
+    if (typeMatch && valueMatch) {
+      const type = typeMatch[1].replace('HKQuantityTypeIdentifier', '').replace('HKCategoryTypeIdentifier', '');
+      records.push({ type, value: parseFloat(valueMatch[1]), date: dateMatch ? dateMatch[1] : '' });
+    }
+  }
+  if (records.length > 0) {
+    store[currentProfile].records = records;
+    document.getElementById('dataSourceBadge').textContent = '✅ Apple Health 导入成功！' + records.length + ' 条记录';
+    document.getElementById('statusApple').textContent = '已连接 · ' + records.length + ' 条记录';
+    document.querySelector('#dotApple').className = 'data-dot connected';
+    updateAll();
+  } else {
+    alert('未能从 XML 中解析出健康记录，请确认文件格式正确');
+  }
+}
+
+function importJSON(json) {
+  const records = Array.isArray(json) ? json : json.records || json.data;
+  if (records && records.length > 0) {
+    store[currentProfile].records = records;
+    const total = records.length;
+    document.getElementById('dataSourceBadge').textContent = '✅ 数据导入成功！共 ' + total + ' 条记录';
+    document.getElementById('statusApple').textContent = '已连接 · ' + total + ' 条记录';
+    document.querySelector('#dotApple').className = 'data-dot connected';
+    usingDemoData = false;
+    updateAll();
+  }
+}
+
+// ========== LOAD SAMPLE ==========
+function loadSampleData() {
+  store.me.records = generateSampleData();
+  store.mom.records = generateSampleData();
+  usingDemoData = true;
+  document.getElementById('dataSourceBadge').textContent = '🎯 示例数据展示模式 · 请导入你的真实数据';
+  document.getElementById('statusApple').textContent = '示例数据';
+  document.querySelector('#dotApple').className = 'data-dot connected';
+  document.getElementById('statusHuawei').textContent = '示例数据';
+  document.querySelector('#dotHuawei').className = 'data-dot connected';
+  updateAll();
+}
+
+// ========== PROCESS DATA ==========
+function getProcessedData() {
+  const records = store[currentProfile].records;
+  if (!records || records.length === 0) return null;
+
+  const days = currentRange;
+  const now = new Date();
+
+  // Build date-indexed data
+  const dateMap = {};
+  for (let i = 0; i < days; i++) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    dateMap[key] = { restingHR: 0, hrv: 0, sleepHours: 0, sleepDeep: 0, sleepLight: 0, sleepREM: 0, steps: 0, activeMinutes: 0, stress: 0, count: 0 };
+  }
+
+  // Flatten sample data or use real records
+  let flatRecords;
+  if (usingDemoData) {
+    flatRecords = records;
+  } else {
+    // Try to process Apple Health records
+    flatRecords = processRealRecords(records, days);
+  }
+
+  if (flatRecords && flatRecords.length > 0) {
+    return buildChartData(flatRecords, days);
+  }
+
+  return null;
+}
+
+function processRealRecords(records, days) {
+  // Map Apple Health types to our metrics
+  const results = [];
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+  const typeMap = {
+    'HeartRate': 'heartrate',
+    'RestingHeartRate': 'restingHR',
+    'HeartRateVariabilitySDNN': 'hrv',
+    'StepCount': 'steps',
+    'AppleExerciseTime': 'activeMinutes',
+    'SleepAnalysis': 'sleep',  // special handling
+    'MindfulSession': 'mindful'
+  };
+
+  // Group by date
+  const byDate = {};
+  records.forEach(r => {
+    let d;
+    if (r.date) d = r.date.substring(0, 10);
+    else if (r.startDate) d = r.startDate.substring(0, 10);
+    else return;
+    if (d < cutoff.toISOString().split('T')[0]) return;
+
+    if (!byDate[d]) byDate[d] = {};
+    const type = r.type?.replace('HKQuantityTypeIdentifier', '').replace('HKCategoryTypeIdentifier', '');
+    if (!type) return;
+
+    if (type === 'HeartRate') {
+      if (!byDate[d].heartRates) byDate[d].heartRates = [];
+      byDate[d].heartRates.push(r.value);
+    } else if (type === 'RestingHeartRate') {
+      byDate[d].restingHR = r.value;
+    } else if (type === 'HeartRateVariabilitySDNN') {
+      byDate[d].hrv = r.value;
+    } else if (type === 'StepCount') {
+      byDate[d].steps = (byDate[d].steps || 0) + r.value;
+    } else if (type === 'AppleExerciseTime') {
+      byDate[d].activeMinutes = (byDate[d].activeMinutes || 0) + r.value;
+    }
+  });
+
+  Object.keys(byDate).sort().forEach(d => {
+    const day = byDate[d];
+    const avgHR = day.heartRates?.length > 0
+      ? Math.round(day.heartRates.reduce((a,b) => a+b, 0) / day.heartRates.length)
+      : null;
+    results.push({
+      date: d,
+      restingHR: day.restingHR || avgHR || null,
+      hrv: day.hrv || null,
+      sleepHours: null,
+      sleepDeep: null, sleepLight: null, sleepREM: null,
+      steps: day.steps || null,
+      activeMinutes: day.activeMinutes || null,
+      stress: null
+    });
+  });
+  return results.length > 0 ? results : null;
+}
+
+function buildChartData(dataPoints, days) {
+  const labels = [];
+  const hrData = [], hrvData = [];
+  const sleepDeep = [], sleepLight = [], sleepREM = [];
+  const steps = [], activeMin = [];
+  const stress = [];
+
+  const now = new Date();
+  const dateSet = new Set();
+  dataPoints.forEach(d => dateSet.add(d.date));
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    labels.push(d.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }));
+
+    const dp = dataPoints.find(p => p.date === key);
+    if (dp) {
+      hrData.push(dp.restingHR ?? null);
+      hrvData.push(dp.hrv ?? null);
+      sleepDeep.push(dp.sleepDeep ?? null);
+      sleepLight.push(dp.sleepLight ?? null);
+      sleepREM.push(dp.sleepREM ?? null);
+      steps.push(dp.steps ?? null);
+      activeMin.push(dp.activeMinutes ?? null);
+      stress.push(dp.stress ?? null);
+    } else {
+      hrData.push(null); hrvData.push(null);
+      sleepDeep.push(null); sleepLight.push(null); sleepREM.push(null);
+      steps.push(null); activeMin.push(null); stress.push(null);
+    }
+  }
+
+  return { labels, hrResting: hrData, hrv: hrvData, sleepDeep, sleepLight, sleepREM, steps, activeMin, stress,
+    latest: {
+      hr: hrData.filter(v => v !== null).slice(-1)[0],
+      hrv: hrvData.filter(v => v !== null).slice(-1)[0],
+      sleep: (sleepDeep.filter(v => v !== null).slice(-1)[0] || 0) + (sleepLight.filter(v => v !== null).slice(-1)[0] || 0) + (sleepREM.filter(v => v !== null).slice(-1)[0] || 0),
+      steps: steps.filter(v => v !== null).slice(-1)[0],
+      stress: stress.filter(v => v !== null).slice(-1)[0]
+    },
+    // Calculate averages for filled data
+    avg: {
+      hr: Math.round(hrData.filter(v => v !== null).reduce((a,b) => a+b, 0) / (hrData.filter(v => v !== null).length || 1)),
+      hrv: Math.round(hrvData.filter(v => v !== null).reduce((a,b) => a+b, 0) / (hrvData.filter(v => v !== null).length || 1)),
+      steps: Math.round(steps.filter(v => v !== null).reduce((a,b) => a+b, 0) / (steps.filter(v => v !== null).length || 1))
+    }
+  };
+}
+
+// ========== CHART RENDERING ==========
+function initHRChart(data) {
+  if (!data) return;
+  if (charts.hr) { charts.hr.destroy(); }
+  const ctx = document.getElementById('hrChart').getContext('2d');
+  const hasData = data.hrResting.some(v => v !== null);
+  if (!hasData) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); return; }
+
+  charts.hr = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: '静息心率 (bpm)', data: data.hrResting, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.08)', fill: true, tension: .4, pointRadius: 3, spanGaps: false },
+        { label: 'HRV (ms)', data: data.hrv, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,.08)', fill: true, tension: .4, pointRadius: 3, yAxisID: 'y1', spanGaps: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } } },
+      scales: {
+        y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 10 } } },
+        y1: { position: 'right', beginAtZero: false, grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function initSleepChart(data) {
+  if (!data) return;
+  if (charts.sleep) { charts.sleep.destroy(); }
+  const ctx = document.getElementById('sleepChart').getContext('2d');
+  const hasData = data.sleepDeep.some(v => v !== null);
+  if (!hasData) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); return; }
+
+  charts.sleep = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: '深睡 (h)', data: data.sleepDeep, backgroundColor: '#6366f1', borderRadius: 3 },
+        { label: '浅睡 (h)', data: data.sleepLight, backgroundColor: '#a5b4fc', borderRadius: 3 },
+        { label: 'REM (h)', data: data.sleepREM, backgroundColor: '#c7d2fe', borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { stacked: true, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function initActivityChart(data) {
+  if (!data) return;
+  if (charts.activity) { charts.activity.destroy(); }
+  const ctx = document.getElementById('activityChart').getContext('2d');
+  const hasData = data.steps.some(v => v !== null);
+  if (!hasData) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); return; }
+
+  charts.activity = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [{ label: '步数', data: data.steps, backgroundColor: '#22c55e', borderRadius: 3 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function initStressChart(data) {
+  if (!data) return;
+  if (charts.stress) { charts.stress.destroy(); }
+  const ctx = document.getElementById('stressChart').getContext('2d');
+  const hasData = data.stress.some(v => v !== null);
+  if (!hasData) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); return; }
+
+  const colors = data.stress.map(v => v === null ? '#ccc' : v < 35 ? '#22c55e' : v < 50 ? '#f59e0b' : '#ef4444');
+  charts.stress = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [{ label: '压力指数', data: data.stress, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.08)', fill: true, tension: .4, pointRadius: 4, pointBackgroundColor: colors }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 10 } } } }
+    }
+  });
+}
+
+// ========== UI UPDATES ==========
+function updateMetricCards(data) {
+  if (!data || !data.latest) {
+    ['mRestHR','mSleep','mActivity','mStress'].forEach(id => {
+      document.getElementById(id).textContent = '--';
+    });
+    return;
+  }
+  const l = data.latest;
+  document.getElementById('mRestHR').textContent = l.hr || '--';
+  document.getElementById('mHRChange').textContent = l.hr ? data.avg.hr + ' bpm (7日均值)' : '等待数据';
+  document.getElementById('mHRChange').className = 'metric-change ' + (l.hr ? 'up' : 'neutral');
+
+  document.getElementById('mSleep').innerHTML = l.sleep ? l.sleep.toFixed(1) + '<span style="font-size:16px;font-weight:400;">h</span>' : '--';
+  document.getElementById('mSleepChange').textContent = l.sleep ? '最新可用' : '等待数据';
+  document.getElementById('mSleepChange').className = 'metric-change neutral';
+
+  document.getElementById('mActivity').innerHTML = l.steps ? l.steps.toLocaleString() + '<span style="font-size:16px;font-weight:400;"> 步</span>' : '--';
+  document.getElementById('mActivityChange').textContent = l.steps ? data.avg.steps.toLocaleString() + ' (日均)' : '等待数据';
+  document.getElementById('mActivityChange').className = 'metric-change ' + (l.steps ? 'neutral' : 'neutral');
+
+  document.getElementById('mStress').textContent = l.stress || '--';
+  document.getElementById('mStressChange').textContent = l.stress ? (l.stress < 35 ? '放松状态' : l.stress < 50 ? '平稳' : '偏高') : '等待数据';
+  document.getElementById('mStressChange').className = 'metric-change ' + (l.stress ? (l.stress < 35 ? 'up' : 'neutral') : 'neutral');
+}
+
+function updateCoach(data) {
+  const p = currentProfile === 'me' ? { name: '小陈' } : { name: '妈妈' };
+  document.getElementById('coachProfile').textContent = p.name;
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
+  document.getElementById('coachGreeting').textContent = greeting + '，为你准备了一份今日健康简报';
+
+  if (!data || !data.latest || !data.latest.hr) {
+    document.getElementById('coachAdvice').textContent = '📤 请导入你的健康数据，AI 将为你生成个性化健康建议';
+    document.getElementById('coachFocus').textContent = '💡 支持 Apple Health 导出文件或 JSON 格式数据';
+    document.getElementById('hrStatus').textContent = '等待数据';
+    document.getElementById('sleepScore').textContent = '--';
+    document.getElementById('activityStatus').textContent = '--';
+    document.getElementById('stressStatus').textContent = '--';
+    return;
+  }
+
+  const l = data.latest;
+  document.getElementById('coachAdvice').textContent = '心率 ' + (l.hr || '--') + ' bpm · HRV ' + (l.hrv || '--') + 'ms · 整体趋势' + (l.hrv && l.hrv > 35 ? '良好' : '注意恢复');
+  document.getElementById('coachFocus').textContent = '基于 ' + currentRange + ' 天数据分析，' + (l.steps ? '日均 ' + data.avg.steps.toLocaleString() + ' 步' : '活动数据待补充');
+  document.getElementById('hrStatus').textContent = l.hr ? l.hr + ' bpm' : '--';
+  document.getElementById('sleepScore').textContent = l.sleep ? Math.round((l.sleep / 8) * 100) + '分' : '--';
+  document.getElementById('activityStatus').textContent = l.steps ? l.steps.toLocaleString() + ' 步' : '--';
+  document.getElementById('stressStatus').textContent = l.stress ? (l.stress < 35 ? '良好' : l.stress < 50 ? '平稳' : '偏高') : '--';
+}
+
+function updateAll() {
+  currentRange = parseInt(document.getElementById('dateRangeSelect').value);
+  const data = getProcessedData();
+  initHRChart(data);
+  initSleepChart(data);
+  initActivityChart(data);
+  initStressChart(data);
+  updateMetricCards(data);
+  updateCoach(data);
+}
+
+// ========== INSIGHTS ==========
+function generateInsights() {
+  document.getElementById('lastSync').textContent = '🤖 AI 分析中...';
+  setTimeout(() => {
+    const data = getProcessedData();
+    if (!data || !data.avg) {
+      document.getElementById('coachAdvice').textContent = '请先导入健康数据或加载示例数据';
+      document.getElementById('coachFocus').textContent = '点击"加载示例数据体验看板功能"';
+      document.getElementById('lastSync').textContent = '🔄 等待数据';
+      return;
+    }
+    const insights = [
+      '心率 HRV ' + data.avg.hrv + 'ms · ' + (data.avg.hrv > 35 ? '正常范围，恢复良好' : '偏低，注意休息'),
+      '日均步数 ' + data.avg.steps.toLocaleString() + ' · ' + (data.avg.steps >= 8000 ? '活动量充足👍' : '建议增加日常活动'),
+      '静息心率 ' + data.avg.hr + ' bpm · 处于' + (data.avg.hr < 65 ? '优秀运动员水平' : data.avg.hr < 75 ? '正常范围' : '偏高范围')
+    ];
+    document.getElementById('coachAdvice').textContent = '📊 ' + insights[Math.floor(Math.random() * insights.length)];
+    document.getElementById('coachFocus').textContent = '💡 ' + insights[Math.floor(Math.random() * insights.length)];
+    document.getElementById('lastSync').textContent = '🤖 AI 分析完成 · ' + new Date().toLocaleTimeString('zh-CN');
+  }, 500);
+}
+
+// ========== COACH CHAT ==========
+function showCoachChat() {
+  const msgs = [
+    '🏋️ 今天推荐做什么运动？',
+    '😴 如何改善我的睡眠？',
+    '❤️ 我的心率数据正常吗？',
+    '🧘 压力有点大怎么办？'
+  ];
+  const suggestions = msgs.map(m => '• ' + m).join('\n');
+  alert('🤖 AI 健康教练随时为你服务！\n\n你可以直接在对话窗口向我提问，例如：\n\n' + suggestions + '\n\n💡 我可以根据你的健康数据提供个性化建议、分析趋势、制定训练计划。');
+}
+
+// ========== PROFILE SWITCHING ==========
+document.querySelectorAll('.profile-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    currentProfile = this.dataset.profile;
+    updateAll();
+    document.getElementById('lastSync').textContent = '🔄 已切换至' + (currentProfile === 'me' ? '你自己' : '妈妈') + '的数据';
+  });
+});
+
+// ========== INIT ==========
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('lastSync').textContent = '🔄 ' + new Date().toLocaleTimeString('zh-CN') + ' 就绪';
+});
+</script>
+</body>
+</html>

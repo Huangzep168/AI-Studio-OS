@@ -1,0 +1,109 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NewsHub · 今日全球</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;background:#f0f2f5;color:#1a1d23;line-height:1.5}
+
+/* header */
+.header{background:#fff;border-bottom:1px solid #e4e8ee;position:sticky;top:0;z-index:10}
+.header-inner{max-width:1200px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,#2563eb,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.cat-bar{max-width:1200px;margin:0 auto;padding:14px 24px 0;display:flex;gap:8px;flex-wrap:wrap}
+.cat-btn{padding:5px 14px;border:1px solid #dce0e8;border-radius:16px;background:#fff;color:#5e6472;font-size:13px;cursor:pointer;transition:.2s}
+.cat-btn:hover{border-color:#2563eb;color:#2563eb}
+.cat-btn.active{background:#2563eb;border-color:#2563eb;color:#fff}
+
+/* grid */
+.container{max-width:1200px;margin:0 auto;padding:20px 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+
+/* card */
+.card{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:.2s;cursor:default}
+.card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.card-img{height:150px;display:flex;align-items:center;justify-content:center;font-size:40px;position:relative}
+.tag{position:absolute;top:10px;left:10px;padding:2px 10px;border-radius:5px;font-size:11px;font-weight:600;color:#fff}
+.card-body{padding:14px 16px 16px}
+.card-title{font-size:15px;font-weight:600;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-desc{font-size:13px;color:#5e6472;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.card-meta{display:flex;justify-content:space-between;font-size:12px;color:#8e94a2;border-top:1px solid #edf0f5;padding-top:10px}
+.featured{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr}
+.featured .card-img{height:auto;min-height:220px}
+.featured .card-title{font-size:18px;-webkit-line-clamp:3}
+.featured .card-desc{font-size:14px;-webkit-line-clamp:3}
+.empty{grid-column:1/-1;text-align:center;padding:60px 0;color:#8e94a2}
+.footer{text-align:center;padding:24px;color:#8e94a2;font-size:12px;border-top:1px solid #e4e8ee;margin-top:24px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.featured{grid-template-columns:1fr}.featured .card-img{height:150px;min-height:auto}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">📰 NewsHub</div>
+    <span style="font-size:13px;color:#8e94a2" id="clock"></span>
+  </div>
+</div>
+
+<div class="cat-bar" id="cats"></div>
+
+<div class="container">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="footer">模拟新闻展示 · 仅供演示</div>
+
+<script>
+const C=[{id:'all',label:'全部'},{id:'world',label:'国际'},{id:'tech',label:'科技'},{id:'biz',label:'商业'},{id:'sport',label:'体育'},{id:'sci',label:'科学'},{id:'ent',label:'娱乐'}]
+
+const D=[
+{cat:'world',emoji:'🌍',title:'G7峰会达成气候与数字经济联合声明',desc:'七国集团承诺到2035年可再生能源装机翻倍，建立跨境数据流动新框架。',src:'路透社',t:'2小时前'},
+{cat:'tech',emoji:'💻',title:'OpenAI发布GPT-5：多模态推理大幅提升',desc:'支持实时视频流分析与交互，数学推理和代码生成能力显著进步。',src:'The Verge',t:'3小时前'},
+{cat:'biz',emoji:'📈',title:'亚太股市普涨 芯片板块领跑',desc:'英伟达市值突破4万亿美元，带动纳指创历史新高。',src:'彭博社',t:'1小时前'},
+{cat:'sport',emoji:'⚽',title:'欧冠：皇马3-1曼城 第16次夺冠',desc:'贝林厄姆梅开二度，皇马在温布利延续欧冠传奇。',src:'ESPN',t:'5小时前'},
+{cat:'sci',emoji:'🚀',title:'NASA公布火星样本返回新方案',desc:'简化两阶段着陆方案，预算控制在80亿美元内，2033年目标送抵地球。',src:'NASA',t:'4小时前'},
+{cat:'ent',emoji:'🎬',title:'《阿凡达5》定档 将用裸眼3D技术',desc:'卡梅隆新片无需佩戴眼镜即可获得立体观影体验。',src:'好莱坞报道',t:'6小时前'},
+{cat:'world',emoji:'🏛️',title:'安理会通过加沙停火决议',desc:'14票赞成一票弃权，要求立即停火并开放人道援助通道。',src:'BBC',t:'3小时前'},
+{cat:'tech',emoji:'📱',title:'iPhone 18有望搭载自研5G基带',desc:'苹果自研5G基带芯片测试中，有望改善信号和能效。',src:'9to5Mac',t:'7小时前'},
+{cat:'biz',emoji:'🏦',title:'美联储维持利率不变',desc:'鲍威尔暗示三季度可能启动降息，通胀正朝着2%目标迈进。',src:'华尔街日报',t:'2小时前'},
+{cat:'sci',emoji:'🧬',title:'中国科学家发布完整猕猴大脑细胞图谱',desc:'首次在单细胞分辨率下解析灵长类大脑组织结构，登《细胞》封面。',src:'自然·中国',t:'8小时前'},
+{cat:'sport',emoji:'🏀',title:'NBA：凯尔特人4-2掘金夺第19冠',desc:'塔图姆荣膺总决赛MVP，凯尔特人主场112-98锁定胜局。',src:'体育画报',t:'10小时前'},
+{cat:'ent',emoji:'🎵',title:'Spotify用户破7亿 推出AI混音功能',desc:'新功能DJ Pro可根据用户情绪和场景实时生成个性化曲目。',src:'Billboard',t:'6小时前'}
+]
+
+const colors={world:'#0891b2',tech:'#6366f1',biz:'#059669',sport:'#d97706',sci:'#7c3aed',ent:'#db2777'}
+const bg=['#dbeafe,#ede9fe','#fce7f3,#fef3c7','#d1fae5,#a7f3d0','#e0e7ff,#c7d2fe','#ffe4e6,#fecdd3','#cffafe,#a5f3fc','#f3e8ff,#e9d5ff','#fef3c7,#fde68a']
+
+let active='all'
+
+function label(id){let c=C.find(x=>x.id===id);return c?c.label:id}
+
+function renderCats(){
+  const el=document.getElementById('cats')
+  el.innerHTML=C.map(c=>`<button class="cat-btn${active===c.id?' active':''}" data-id="${c.id}">${c.label}</button>`).join('')
+  el.querySelectorAll('.cat-btn').forEach(b=>b.onclick=()=>{active=b.dataset.id;renderCats();renderNews()})
+}
+
+function renderNews(){
+  const g=document.getElementById('grid')
+  let f=D.filter(n=>active==='all'||n.cat===active)
+  if(!f.length){g.innerHTML='<div class="empty">📭 暂无匹配新闻</div>';return}
+  g.innerHTML=f.map((n,i)=>{
+    const c=colors[n.cat]||'#5e6472'
+    const bk=bg[i%bg.length]
+    const feat=i===0&&f.length>1?' featured':''
+    return `<div class="card${feat}"><div class="card-img" style="background:linear-gradient(135deg,${bk})"><span class="tag" style="background:${c}">${label(n.cat)}</span>${n.emoji}</div><div class="card-body"><div class="card-title">${n.title}</div><div class="card-desc">${n.desc}</div><div class="card-meta"><span>${n.src}</span><span>${n.t}</span></div></div></div>`
+  }).join('')
+}
+
+setInterval(()=>{
+  const d=new Date();document.getElementById('clock').textContent=d.toLocaleString('zh-CN',{hour:'2-digit',minute:'2-digit'})
+},1e3)
+
+renderCats();renderNews()
+</script>
+</body>
+</html>

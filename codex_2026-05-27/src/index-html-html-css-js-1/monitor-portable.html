@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>直播间网络监控系统</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #050914;
+      color: #d7ecff;
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+      cursor: default;
+      user-select: none;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 20% 10%, rgba(31,119,193,.22), transparent 32%),
+        radial-gradient(circle at 82% 18%, rgba(30,222,147,.12), transparent 26%),
+        linear-gradient(135deg, #050914 0%, #07111f 48%, #030711 100%);
+    }
+
+    .grid-bg {
+      position: fixed;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        linear-gradient(rgba(65,173,255,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(65,173,255,.07) 1px, transparent 1px);
+      background-size: 44px 44px;
+      opacity: .75;
+      pointer-events: none;
+    }
+
+    .scanline {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: -18%;
+      height: 18%;
+      background: linear-gradient(to bottom, transparent, rgba(59,196,255,.09), transparent);
+      animation: scan 8s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes scan {
+      from { top: -18%; }
+      to { top: 118%; }
+    }
+
+    .app {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      padding: 22px;
+      box-sizing: border-box;
+    }
+
+    .topbar, .warning, .card, .logs, .summary {
+      border: 1px solid rgba(80,176,255,.32);
+      background: rgba(8,19,35,.88);
+      box-shadow: 0 0 24px rgba(44,171,255,.18), inset 0 0 32px rgba(66,160,255,.06);
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+
+    .topbar {
+      height: 82px;
+      padding: 14px 18px;
+      position: relative;
+    }
+
+    .brand {
+      float: left;
+      width: 44%;
+    }
+
+    .brand h1 {
+      margin: 0;
+      color: #ecf8ff;
+      font-size: 30px;
+      line-height: 34px;
+      text-shadow: 0 0 18px rgba(76,190,255,.35);
+      white-space: nowrap;
+    }
+
+    .brand p {
+      margin: 7px 0 0;
+      color: #7f9ab4;
+      font-size: 14px;
+    }
+
+    .lock {
+      position: absolute;
+      left: 50%;
+      top: 22px;
+      transform: translateX(-50%);
+      padding: 10px 18px;
+      border: 1px solid rgba(34,230,138,.48);
+      border-radius: 22px;
+      color: #22e68a;
+      background: rgba(34,230,138,.08);
+      font-size: 15px;
+      font-weight: bold;
+      box-shadow: 0 0 20px rgba(34,230,138,.13);
+      white-space: nowrap;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: #22e68a;
+      box-shadow: 0 0 12px #22e68a;
+      animation: pulse 1.4s ease-in-out infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: .55; transform: scale(.85); }
+      50% { opacity: 1; transform: scale(1.18); }
+    }
+
+    .clockbox {
+      float: right;
+      text-align: right;
+    }
+
+    .clock {
+      color: #fff;
+      font-size: 30px;
+      line-height: 34px;
+      font-weight: bold;
+      font-family: Consolas, "Microsoft YaHei", monospace;
+      text-shadow: 0 0 16px rgba(69,185,255,.32);
+    }
+
+    .red-tip {
+      margin-top: 8px;
+      color: #ff4f5f;
+      font-size: 14px;
+      font-weight: bold;
+      text-shadow: 0 0 12px rgba(255,79,95,.28);
+    }
+
+    .main {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      top: 118px;
+      bottom: 190px;
+    }
+
+    .col {
+      float: left;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .left, .right {
+      width: 26%;
+    }
+
+    .center {
+      width: 48%;
+      padding: 0 18px;
+    }
+
+    .card {
+      height: 31.2%;
+      margin-bottom: 16px;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .card-title {
+      margin: 0 0 12px;
+      color: #edf8ff;
+      font-size: 20px;
+      font-weight: bold;
+      float: left;
+    }
+
+    .status {
+      float: right;
+      color: #22e68a;
+      font-size: 14px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .status:before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .blue { color: #45b9ff; }
+    .orange { color: #ffad42; }
+
+    .clear {
+      clear: both;
+    }
+
+    .item {
+      float: left;
+      width: 48%;
+      margin: 0 2% 10px 0;
+      padding: 11px 12px;
+      border: 1px solid rgba(82,190,255,.16);
+      border-radius: 6px;
+      background: rgba(0,0,0,.12);
+      box-sizing: border-box;
+    }
+
+    .item.wide {
+      width: 98%;
+    }
+
+    .item span {
+      display: block;
+      color: #7f9ab4;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item strong {
+      display: block;
+      margin-top: 6px;
+      color: #f7fcff;
+      font-size: 25px;
+      line-height: 28px;
+      font-family: Consolas, "Microsoft YaHei", monospace;
+    }
+
+    .item em {
+      color: #45b9ff;
+      font-size: 15px;
+      font-style: normal;
+      margin-left: 4px;
+    }
+
+    .warning {
+      height: 30%;
+      min-height: 190px;
+      padding: 26px;
+      border-color: rgba(255,173,66,.5);
+      background: linear-gradient(90deg, rgba(255,79,95,.12), transparent 36%, rgba(34,230,138,.05)), rgba(9,18,31,.93);
+      box-shadow: 0 0 30px rgba(255,173,66,.13), inset 0 0 34px rgba(255,173,66,.07);
+    }
+
+    .warning-main {
+      margin: 0 0 12px;
+      color: #fff4de;
+      font-size: 35px;
+      line-height: 44px;
+      font-weight: bold;
+      text-shadow: 0 0 20px rgba(255,173,66,.28);
+    }
+
+    .warning-sub {
+      margin: 0;
+      color: #f2fbff;
+      font-size: 25px;
+      line-height: 34px;
+      font-weight: bold;
+    }
+
+    .warning-risk {
+      margin: 14px 0 0;
+      color: #ffc7c7;
+      font-size: 18px;
+    }
+
+    .metrics {
+      height: 67%;
+      margin-top: 16px;
+    }
+
+    .metric {
+      float: left;
+      width: 49%;
+      height: 31%;
+      margin: 0 1% 1.5% 0;
+      padding: 18px;
+      border: 1px solid rgba(82,190,255,.22);
+      border-radius: 8px;
+      background: rgba(7,20,36,.78);
+      box-sizing: border-box;
+      box-shadow: inset 0 0 28px rgba(68,185,255,.05);
+    }
+
+    .metric-label {
+      color: #7f9ab4;
+      font-size: 15px;
+    }
+
+    .metric-value {
+      margin-top: 10px;
+      color: #f3fbff;
+      font-size: 46px;
+      line-height: 52px;
+      font-weight: bold;
+      font-family: Consolas, "Microsoft YaHei", monospace;
+      text-shadow: 0 0 22px rgba(69,185,255,.28);
+    }
+
+    .metric-unit {
+      margin-left: 7px;
+      color: #45b9ff;
+      font-size: 16px;
+    }
+
+    .bar {
+      height: 5px;
+      margin-top: 14px;
+      border-radius: 10px;
+      background: rgba(127,154,180,.16);
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 5px;
+      width: 60%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, #22e68a, #45b9ff);
+      box-shadow: 0 0 12px rgba(34,230,138,.34);
+      transition: width .5s ease;
+    }
+
+    .footer {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 22px;
+      height: 150px;
+    }
+
+    .logs {
+      float: left;
+      width: 76%;
+      height: 150px;
+      padding: 13px 17px;
+      overflow: hidden;
+    }
+
+    .log-head {
+      margin-bottom: 8px;
+      color: #eaf8ff;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .log-list {
+      height: 104px;
+      overflow: hidden;
+      color: #9fc1d8;
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 14px;
+      line-height: 23px;
+    }
+
+    .log-entry {
+      border-bottom: 1px solid rgba(127,154,180,.08);
+      white-space: nowrap;
+    }
+
+    .log-entry time {
+      color: #22e68a;
+      margin-right: 12px;
+    }
+
+    .summary {
+      float: right;
+      width: 22%;
+      height: 150px;
+      padding: 14px 16px;
+      border-color: rgba(255,173,66,.32);
+      background: linear-gradient(180deg, rgba(35,24,16,.82), rgba(10,16,27,.84));
+    }
+
+    .summary h2 {
+      margin: 0 0 8px;
+      color: #ffe4b8;
+      font-size: 18px;
+    }
+
+    .sum-row {
+      padding: 5px 0;
+      border-top: 1px solid rgba(255,173,66,.14);
+      color: #7f9ab4;
+      font-size: 14px;
+    }
+
+    .sum-row strong {
+      float: right;
+      color: #fff4de;
+    }
+
+    @media (max-width: 1200px) {
+      html, body { overflow: auto; height: auto; }
+      .app { height: auto; min-height: 100%; }
+      .main, .footer { position: static; margin-top: 16px; }
+      .col, .left, .right, .center { float: none; width: 100%; padding: 0; }
+      .card { height: auto; min-height: 170px; }
+      .warning { height: auto; }
+      .metrics { height: auto; }
+      .metric { height: 170px; }
+      .logs, .summary { float: none; width: 100%; margin-bottom: 16px; }
+      .footer { height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="scanline"></div>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <h1>直播间网络监控系统</h1>
+        <p>私人设备 / 禁止触碰</p>
+      </div>
+      <div class="lock"><span class="dot"></span>LOCKED / MONITORING</div>
+      <div class="clockbox">
+        <div id="clock" class="clock">--:--:--</div>
+        <div class="red-tip">非本人请勿操作此电脑</div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="col left">
+        <div class="card">
+          <h2 class="card-title">直播间一</h2><div class="status">正常</div><div class="clear"></div>
+          <div class="item"><span>在线人数</span><strong><b id="room1">1268</b><em>人</em></strong></div>
+          <div class="item"><span>推流码率</span><strong><b id="bitrate1">8.4</b><em>Mbps</em></strong></div>
+          <div class="item wide"><span>任务状态</span><strong>监控中</strong></div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">直播间二</h2><div class="status blue">监控中</div><div class="clear"></div>
+          <div class="item"><span>在线人数</span><strong><b id="room2">842</b><em>人</em></strong></div>
+          <div class="item"><span>推流码率</span><strong><b id="bitrate2">6.9</b><em>Mbps</em></strong></div>
+          <div class="item wide"><span>任务状态</span><strong>推流稳定</strong></div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">推流状态</h2><div class="status">推流稳定</div><div class="clear"></div>
+          <div class="item"><span>上行峰值</span><strong><b id="peakUp">31.4</b><em>Mbps</em></strong></div>
+          <div class="item"><span>稳定时长</span><strong><b id="uptime">08:42</b><em>h</em></strong></div>
+          <div class="item wide"><span>输出通道</span><strong>RTMP / SRT</strong></div>
+        </div>
+      </div>
+
+      <div class="col center">
+        <div class="warning">
+          <p class="warning-main">警告：私人电脑正在运行直播间网络监控任务</p>
+          <p class="warning-sub">请勿触碰、移动、关机或拔线</p>
+          <p class="warning-risk">非授权操作可能导致直播间断流</p>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">当前上行网速</div><div class="metric-value"><span id="upSpeed">28.6</span><span class="metric-unit">Mbps</span></div><div class="bar"><span id="upFill"></span></div></div>
+          <div class="metric"><div class="metric-label">当前下行网速</div><div class="metric-value"><span id="downSpeed">92.4</span><span class="metric-unit">Mbps</span></div><div class="bar"><span id="downFill"></span></div></div>
+          <div class="metric"><div class="metric-label">CPU 占用率</div><div class="metric-value"><span id="cpu">42</span><span class="metric-unit">%</span></div><div class="bar"><span id="cpuFill"></span></div></div>
+          <div class="metric"><div class="metric-label">内存占用率</div><div class="metric-value"><span id="memory">63</span><span class="metric-unit">%</span></div><div class="bar"><span id="memFill"></span></div></div>
+          <div class="metric"><div class="metric-label">网络延迟</div><div class="metric-value"><span id="latency">18</span><span class="metric-unit">ms</span></div><div class="bar"><span id="latencyFill"></span></div></div>
+          <div class="metric"><div class="metric-label">丢包率</div><div class="metric-value"><span id="packetLoss">0.03</span><span class="metric-unit">%</span></div><div class="bar"><span id="lossFill"></span></div></div>
+        </div>
+      </div>
+
+      <div class="col right">
+        <div class="card">
+          <h2 class="card-title">线路一</h2><div class="status">正常</div><div class="clear"></div>
+          <div class="item"><span>线路状态</span><strong id="line1State">正常</strong></div>
+          <div class="item"><span>延迟</span><strong><b id="line1Latency">17</b><em>ms</em></strong></div>
+          <div class="item wide"><span>链路角色</span><strong>主线路运行</strong></div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">线路二</h2><div class="status orange">备用线路待命</div><div class="clear"></div>
+          <div class="item"><span>线路状态</span><strong id="line2State">备用线路待命</strong></div>
+          <div class="item"><span>延迟</span><strong><b id="line2Latency">24</b><em>ms</em></strong></div>
+          <div class="item wide"><span>链路角色</span><strong>自动接管待命</strong></div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">设备状态</h2><div class="status blue">监控中</div><div class="clear"></div>
+          <div class="item"><span>CPU</span><strong><b id="cpuMini">42</b><em>%</em></strong></div>
+          <div class="item"><span>Memory</span><strong><b id="memMini">63</b><em>%</em></strong></div>
+          <div class="item wide"><span>本机锁定策略</span><strong>Unauthorized touch detection enabled</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="logs">
+        <div class="log-head">实时事件日志 <span class="status blue" style="float:right">Monitoring</span></div>
+        <div id="logList" class="log-list"></div>
+      </div>
+      <div class="summary">
+        <h2>核心状态摘要</h2>
+        <div class="sum-row">任务模式 <strong>Live Ops</strong></div>
+        <div class="sum-row">采样周期 <strong>1s</strong></div>
+        <div class="sum-row">线路切换 <strong>Auto</strong></div>
+        <div class="sum-row">操作权限 <strong>LOCKED</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var state = {
+      upSpeed: 28.6,
+      downSpeed: 92.4,
+      cpu: 42,
+      memory: 63,
+      latency: 18,
+      packetLoss: 0.03,
+      room1: 1268,
+      room2: 842,
+      bitrate1: 8.4,
+      bitrate2: 6.9,
+      line1Latency: 17,
+      line2Latency: 24,
+      peakUp: 31.4,
+      startedAt: new Date().getTime() - 8 * 60 * 60 * 1000 - 42 * 60 * 1000
+    };
+
+    var logMessages = [
+      "Live Room 1 bitrate stable",
+      "Line 1 latency normal",
+      "Backup line standby",
+      "Unauthorized touch detection enabled",
+      "Live Room 2 audience count synced",
+      "RTMP upstream status healthy",
+      "Packet loss below threshold",
+      "Main route heartbeat accepted",
+      "Monitoring process locked",
+      "Device temperature within range"
+    ];
+
+    function el(id) {
+      return document.getElementById(id);
+    }
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function drift(value, min, max, step) {
+      var next = value + randomBetween(-step, step);
+      return Math.min(max, Math.max(min, next));
+    }
+
+    function pad(value) {
+      value = String(value);
+      return value.length < 2 ? "0" + value : value;
+    }
+
+    function timeStamp(date) {
+      date = date || new Date();
+      return pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds());
+    }
+
+    function updateClock() {
+      var now = new Date();
+      el("clock").innerHTML = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) + " " + timeStamp(now);
+    }
+
+    function updateUptime() {
+      var totalMinutes = Math.floor((new Date().getTime() - state.startedAt) / 60000);
+      var hours = Math.floor(totalMinutes / 60);
+      var minutes = totalMinutes % 60;
+      el("uptime").innerHTML = pad(hours) + ":" + pad(minutes);
+    }
+
+    function setFill(id, percent) {
+      percent = Math.min(100, Math.max(4, percent));
+      el(id).style.width = percent + "%";
+    }
+
+    function updateMetrics() {
+      state.upSpeed = drift(state.upSpeed, 24.5, 34.8, 1.15);
+      state.downSpeed = drift(state.downSpeed, 78.0, 118.0, 3.6);
+      state.cpu = drift(state.cpu, 31, 64, 4.2);
+      state.memory = drift(state.memory, 56, 73, 1.35);
+      state.latency = Math.round(drift(state.latency, 14, 31, 2.2));
+      state.packetLoss = drift(state.packetLoss, 0.00, 0.18, 0.025);
+      state.room1 = Math.round(drift(state.room1, 1150, 1480, 26));
+      state.room2 = Math.round(drift(state.room2, 760, 990, 22));
+      state.bitrate1 = drift(state.bitrate1, 7.8, 9.4, 0.18);
+      state.bitrate2 = drift(state.bitrate2, 6.2, 7.7, 0.16);
+      state.line1Latency = Math.round(drift(state.line1Latency, 14, 26, 1.8));
+      state.line2Latency = Math.round(drift(state.line2Latency, 20, 37, 2.4));
+      state.peakUp = Math.max(state.peakUp, state.upSpeed + randomBetween(0.4, 2.1));
+
+      el("upSpeed").innerHTML = state.upSpeed.toFixed(1);
+      el("downSpeed").innerHTML = state.downSpeed.toFixed(1);
+      el("cpu").innerHTML = Math.round(state.cpu);
+      el("memory").innerHTML = Math.round(state.memory);
+      el("latency").innerHTML = state.latency;
+      el("packetLoss").innerHTML = state.packetLoss.toFixed(2);
+      el("room1").innerHTML = state.room1;
+      el("room2").innerHTML = state.room2;
+      el("bitrate1").innerHTML = state.bitrate1.toFixed(1);
+      el("bitrate2").innerHTML = state.bitrate2.toFixed(1);
+      el("line1Latency").innerHTML = state.line1Latency;
+      el("line2Latency").innerHTML = state.line2Latency;
+      el("peakUp").innerHTML = state.peakUp.toFixed(1);
+      el("cpuMini").innerHTML = Math.round(state.cpu);
+      el("memMini").innerHTML = Math.round(state.memory);
+
+      setFill("upFill", state.upSpeed / 36 * 100);
+      setFill("downFill", state.downSpeed / 125 * 100);
+      setFill("cpuFill", state.cpu);
+      setFill("memFill", state.memory);
+      setFill("latencyFill", state.latency / 45 * 100);
+      setFill("lossFill", state.packetLoss / 0.25 * 100);
+      updateUptime();
+    }
+
+    function addLog(message, date) {
+      var list = el("logList");
+      var entry = document.createElement("div");
+      entry.className = "log-entry";
+      entry.innerHTML = "<time>[" + timeStamp(date) + "]</time><span>" + message + "</span>";
+
+      if (list.firstChild) {
+        list.insertBefore(entry, list.firstChild);
+      } else {
+        list.appendChild(entry);
+      }
+
+      while (list.childNodes.length > 9) {
+        list.removeChild(list.lastChild);
+      }
+    }
+
+    function seedLogs() {
+      var now = new Date().getTime();
+      var i;
+      for (i = 0; i < 7; i++) {
+        addLog(logMessages[i], new Date(now - (7 - i) * 18000));
+      }
+    }
+
+    updateClock();
+    updateMetrics();
+    seedLogs();
+    setInterval(updateClock, 1000);
+    setInterval(updateMetrics, 1000);
+    setInterval(function () {
+      var message = logMessages[Math.floor(Math.random() * logMessages.length)];
+      addLog(message);
+    }, 3200);
+  </script>
+</body>
+</html>

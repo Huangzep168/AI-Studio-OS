@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Anjuke Broker Dashboard",
+  "schemaVersion": 1,
+  "description": "安居客经纪人工作台实时看板 — 今日客户咨询、房源动态、待办任务、日程安排一站式总览"
+}
+</script>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --primary: #1a73e8; --primary-light: #e8f0fe; --primary-dark: #1557b0;
+    --success: #0f9d58; --success-light: #e6f4ea;
+    --warning: #f9ab00; --warning-light: #fef7e0;
+    --danger: #ea4335; --danger-light: #fce8e6;
+    --bg: #f0f2f5; --card: #ffffff;
+    --text: #202124; --text-secondary: #5f6368; --text-light: #9aa0a6;
+    --border: #e0e0e0;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,0.1);
+    --radius: 12px; --radius-sm: 8px;
+    color-scheme: light;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 20px;
+  }
+  .header { max-width: 1200px; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-left .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--primary), #4a90d9); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; }
+  .header-left h1 { font-size: 22px; font-weight: 700; }
+  .header-left .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-right .date-badge { background: var(--card); padding: 8px 16px; border-radius: 20px; font-size: 13px; color: var(--text-secondary); box-shadow: var(--shadow); font-weight: 500; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.online { background: var(--success); }
+  .status-dot.offline { background: var(--danger); }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .refresh-bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); }
+  .refresh-btn { background: var(--card); border: 1px solid var(--border); padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text); font-weight: 500; transition: background 0.15s; }
+  .refresh-btn:hover { background: var(--primary-light); }
+  .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .alert-banner { border-radius: var(--radius-sm); padding: 14px 18px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; display: flex; gap: 12px; align-items: flex-start; }
+  .alert-banner.danger { background: var(--danger-light); border: 1px solid var(--danger); }
+  .alert-banner.warning { background: var(--warning-light); border: 1px solid var(--warning); }
+  .alert-banner.success { background: var(--success-light); border: 1px solid var(--success); }
+  .alert-banner .alert-icon { font-size: 20px; flex-shrink: 0; }
+  .alert-banner .alert-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .alert-banner .alert-actions { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .alert-banner .alert-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+  .alert-tag.red { background: var(--danger-light); color: #c5221f; }
+  .alert-tag.orange { background: var(--warning-light); color: #e37400; }
+
+  .score-hero { background: linear-gradient(135deg, #1a73e8 0%, #4a90d9 100%); border-radius: var(--radius); padding: 24px 28px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(26,115,232,0.25); color: white; display: grid; grid-template-columns: auto 1fr; gap: 24px; align-items: center; }
+  .score-hero .score-ring { width: 100px; height: 100px; position: relative; flex-shrink: 0; }
+  .score-hero .score-ring svg { transform: rotate(-90deg); }
+  .score-hero .score-ring .score-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+  .score-hero .score-ring .score-text .num { font-size: 32px; font-weight: 800; line-height: 1; }
+  .score-hero .score-ring .score-text .label { font-size: 10px; opacity: 0.8; margin-top: 2px; }
+  .score-hero .score-info .score-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .score-hero .score-info .score-level { display: inline-block; background: rgba(255,255,255,0.2); padding: 2px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 8px; }
+  .score-hero .score-info .score-desc { font-size: 13px; opacity: 0.9; line-height: 1.5; }
+  @media (max-width: 640px) { .score-hero { grid-template-columns: 1fr; text-align: center; } .score-hero .score-ring { margin: 0 auto; } }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi-card { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; transition: transform 0.15s; }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi-card.total::before { background: linear-gradient(90deg, #4285f4, #1a73e8); }
+  .kpi-card.active::before { background: linear-gradient(90deg, #0f9d58, #34a853); }
+  .kpi-card.promote::before { background: linear-gradient(90deg, #f9ab00, #ea4335); }
+  .kpi-card.clicks::before { background: linear-gradient(90deg, #ea4335, #c5221f); }
+  .kpi-card.violation::before { background: linear-gradient(90deg, #34a853, #0f9d58); }
+  .kpi-card.days::before { background: linear-gradient(90deg, #ab47bc, #7b1fa2); }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+  .kpi-card .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .kpi-card .label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+  .kpi-card .label-icon { font-size: 14px; opacity: 0.6; }
+  .kpi-card .value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  .kpi-card .value .unit { font-size: 12px; font-weight: 400; color: var(--text-secondary); }
+  .kpi-card .sub { font-size: 11px; margin-top: 4px; color: var(--text-secondary); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .card-header h3 { font-size: 14px; font-weight: 600; }
+  .card-header .badge { font-size: 11px; background: var(--primary-light); color: var(--primary); padding: 2px 10px; border-radius: 12px; font-weight: 500; }
+  .card-body { padding: 10px 18px; }
+
+  .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+  .task-item:last-child { border-bottom: none; }
+  .task-item .priority { width: 4px; height: 100%; min-height: 36px; border-radius: 2px; flex-shrink: 0; }
+  .priority.critical { background: var(--danger); }
+  .priority.high { background: var(--warning); }
+  .priority.medium { background: var(--primary); }
+  .priority.low { background: #ccc; }
+  .task-item .content { flex: 1; }
+  .task-item .content .title { font-size: 13px; font-weight: 500; }
+  .task-item .content .desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .task-item .tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 500; flex-shrink: 0; }
+  .tag.urgent { background: var(--danger-light); color: #c5221f; }
+  .tag.today { background: var(--warning-light); color: #e37400; }
+  .tag.week { background: var(--primary-light); color: var(--primary-dark); }
+
+  .prop-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+  .prop-item .name { flex: 1; font-weight: 500; }
+  .prop-item .spec { color: var(--text-secondary); font-size: 12px; margin: 0 12px; }
+  .prop-item .quality { font-size: 11px; padding: 1px 6px; border-radius: 3px; }
+  .quality.high { background: var(--success-light); color: #1e7e34; }
+  .quality.mid { background: var(--warning-light); color: #e37400; }
+  .quality.low { background: var(--danger-light); color: #c5221f; }
+
+  .sop-step { padding: 8px 0; border-bottom: 1px solid #f5f5f5; display: flex; gap: 10px; align-items: flex-start; }
+  .sop-step .step-num { width: 22px; height: 22px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .sop-step .step-text { font-size: 13px; }
+  .sop-step .step-text .step-title { font-weight: 500; }
+
+  .footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 11px; }
+</style>
+<title>安居客 · 商业地产操盘手看板</title>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-icon">🏢</div>
+    <div>
+      <h1>商业地产操盘手看板</h1>
+      <div class="subtitle" id="subtitle">黄晓敏 · 写字楼招商 · 荔湾/芳村</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="date-badge" id="dateBadge">📅 加载中...</span>
+    <span class="date-badge"><span class="status-dot online"></span>实时数据</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="refresh-bar">
+    <span id="lastRefresh">上次更新：--</span>
+    <button class="refresh-btn" onclick="refresh()">🔄 刷新</button>
+  </div>
+
+  <!-- Alert: 神奇分低 -->
+  <div class="alert-banner danger" id="alertPackage">
+    <div class="alert-icon">🔴</div>
+    <div>
+      <div class="alert-title">神奇分仅2.4分，打败4%同行！曝光严重不足</div>
+      全网通套餐有效（至2026.11.20）且有6,935房产币余额，但缺推广套餐导致曝光接近于零。需提升神奇分+购买推广套餐。
+      <div class="alert-actions"><span class="alert-tag red">紧急</span><span class="alert-tag orange">建议购买58/安居客推广套餐</span></div>
+    </div>
+  </div>
+
+  <!-- Alert: 优化提醒 -->
+  <div class="alert-banner warning" id="alertQuality">
+    <div class="alert-icon">📌</div>
+    <div>
+      <div class="alert-title">房源质量 + 标题优化空间大</div>
+      29套房源大部分质量"低"，且19天未编辑。每日刷新+上传视频可显著提升质量分。
+    </div>
+  </div>
+
+  <!-- Score Hero -->
+  <div class="score-hero">
+    <div class="score-ring">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="7"/>
+        <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="7"
+          stroke-dasharray="276.5" stroke-dashoffset="193" stroke-linecap="round"/>
+      </svg>
+      <div class="score-text">
+        <div class="num" id="healthScore">35</div>
+        <div class="label">健康分</div>
+      </div>
+    </div>
+    <div class="score-info">
+      <div class="score-title">账号诊断 · 急需提升</div>
+      <div class="score-level">📌 神奇分2.4 · 打败4%经纪人</div>
+      <div class="score-desc" id="scoreDesc">
+        你有全网通套餐（至2026.11.20）和6,935房产币，资源充足。但缺乏58/安居客推广套餐，加上神奇分极低，导致曝光归零。
+        优先级：① 购买推广套餐用掉房产币 ② 每日刷新房源提升神奇分 ③ 优化标题和图片
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card total"><div class="label-row"><span class="label">🏘️ 房源总数</span></div><div class="value">29 <span class="unit">套</span></div><div class="sub">全部写字楼出租</div></div>
+    <div class="kpi-card promote"><div class="label-row"><span class="label">📢 推广中</span></div><div class="value">29 <span class="unit">套</span></div><div class="sub">全部上架展示中</div></div>
+    <div class="kpi-card violation"><div class="label-row"><span class="label">🌟 神奇分</span></div><div class="value">2.4 <span class="unit">分</span></div><div class="sub">打败4%经纪人 ⚠️</div></div>
+    <div class="kpi-card clicks"><div class="label-row"><span class="label">💰 房产币</span></div><div class="value">6,935 <span class="unit">币</span></div><div class="sub">可用来购买推广套餐</div></div>
+    <div class="kpi-card active"><div class="label-row"><span class="label">🎫 全网通套餐</span></div><div class="value">175 <span class="unit">天</span></div><div class="sub">到期2026.11.20 ✅</div></div>
+    <div class="kpi-card days"><div class="label-row"><span class="label">📅 末次编辑</span></div><div class="value">19 <span class="unit">天前</span></div><div class="sub">90天未编辑将下架</div></div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid">
+    <!-- Today's SOP -->
+    <div class="card">
+      <div class="card-header"><h3>📋 今日SOP执行清单</h3><span class="badge">6项</span></div>
+      <div class="card-body" id="sopList">
+        <div class="sop-step"><span class="step-num">1</span><div class="step-text"><span class="step-title">检查账号健康度</span><br><span style="font-size:12px;color:var(--text-secondary)">神奇分2.4 · 违规0 · 信誉良好 ✅</span></div></div>
+        <div class="sop-step"><span class="step-num">2</span><div class="step-text"><span class="step-title">刷新所有房源</span><br><span style="font-size:12px;color:var(--text-secondary)">29套已19天未编辑，需每日刷新提升神奇分</span></div></div>
+        <div class="sop-step"><span class="step-num">3</span><div class="step-text"><span class="step-title">购买58/安居客推广套餐</span><br><span style="font-size:12px;color:var(--text-secondary)">用6,935房产币购买，解决曝光问题 ← 核心</span></div></div>
+        <div class="sop-step"><span class="step-num">4</span><div class="step-text"><span class="step-title">优化房源质量</span><br><span style="font-size:12px;color:var(--text-secondary)">上传视频+实拍图，提升质量评级</span></div></div>
+        <div class="sop-step"><span class="step-num">5</span><div class="step-text"><span class="step-title">优化标题A/B测试</span><br><span style="font-size:12px;color:var(--text-secondary)">每个房源生成5-10个标题，测试点击率</span></div></div>
+        <div class="sop-step"><span class="step-num">6</span><div class="step-text"><span class="step-title">生成日报提交审核</span><br><span style="font-size:12px;color:var(--text-secondary)">汇总当日数据及优化建议</span></div></div>
+      </div>
+    </div>
+
+    <!-- Hot Listings -->
+    <div class="card">
+      <div class="card-header"><h3>🏢 房源概览（Top 6）</h3><span class="badge">荔湾/芳村</span></div>
+      <div class="card-body" id="listingList">
+        <div class="prop-item"><span class="name">立白中心</span><span class="spec">78㎡ 3元/㎡/天</span><span class="quality low">质量低</span></div>
+        <div class="prop-item"><span class="name">荔胜广场</span><span class="spec">78㎡ 2.1元/㎡/天</span><span class="quality mid">质量中</span></div>
+        <div class="prop-item"><span class="name">立白中心</span><span class="spec">168㎡ 2.5元/㎡/天</span><span class="quality low">质量低</span></div>
+        <div class="prop-item"><span class="name">荔胜广场</span><span class="spec">168㎡ 2.3元/㎡/天</span><span class="quality mid">质量中</span></div>
+        <div class="prop-item"><span class="name">荔胜广场</span><span class="spec">289㎡ 3元/㎡/天</span><span class="quality low">质量低</span></div>
+        <div class="prop-item"><span class="name">1850创意园</span><span class="spec">78㎡ 2.1元/㎡/天</span><span class="quality mid">质量中</span></div>
+        <div class="prop-item"><span class="name">信义国际会馆</span><span class="spec">168㎡ 2.8元/㎡/天</span><span class="quality low">质量低</span></div>
+        <div class="prop-item"><span class="name">金昊大厦</span><span class="spec">78㎡ 2.8元/㎡/天</span><span class="quality low">质量低</span></div>
+      </div>
+    </div>
+
+    <!-- Action Plan -->
+    <div class="card full-width" style="grid-column:1/-1">
+      <div class="card-header"><h3>🎯 操盘手自动执行计划</h3><span class="badge">每日循环</span></div>
+      <div class="card-body" style="padding:0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+          <div style="padding:14px 18px;border-right:1px solid var(--border);">
+            <div style="font-weight:600;font-size:13px;margin-bottom:10px;">🔵 第一阶段（立即启动）</div>
+            <div style="font-size:12px;line-height:2;color:var(--text-secondary);">
+              ✅ ① 全网通套餐正常（至2026.11.20）<br>
+              ⏳ ② 购买58推广套餐（消耗房产币）← 等你确认<br>
+              ⏳ ③ 购买安居客推广套餐（消耗房产币）← 等你确认<br>
+              ⏳ ④ 每日刷新29套房源<br>
+              ⏳ ⑤ 上传视频提升质量分
+            </div>
+          </div>
+          <div style="padding:14px 18px;">
+            <div style="font-weight:600;font-size:13px;margin-bottom:10px;">🟢 第二阶段（持续运营）</div>
+            <div style="font-size:12px;line-height:2;color:var(--text-secondary);">
+              ⏳ ① 每日检查神奇分变化<br>
+              ⏳ ② 刷新房源（优先热门盘：立白中心/荔胜广场）<br>
+              ⏳ ③ A/B测试标题优化<br>
+              ⏳ ④ 监控曝光/点击/咨询数据<br>
+              ⏳ ⑤ 每周ROI分析报告
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    数据来源：安居客经纪人后台 · 操盘手模式已启动
+  </div>
+</div>
+
+<script>
+  function updateDate() {
+    const now = new Date();
+    const weekdays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    document.getElementById('dateBadge').textContent = `📅 ${now.getFullYear()}年${m}月${d}日 ${weekdays[now.getDay()]}`;
+    document.getElementById('lastRefresh').textContent = `上次更新：${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  }
+  updateDate();
+  function refresh() { location.reload(); }
+</script>
+</body>
+</html>

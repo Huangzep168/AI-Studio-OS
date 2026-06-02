@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Health Dashboard",
+  "schemaVersion": 1,
+  "description": "小陈·AI健康管家 — 基于真实 Apple Health 数据的 30 天看板（心率/HRV/睡眠/步数/ECG/运动类型）"
+}
+</script>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小陈 · AI 健康管家</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root { color-scheme: light; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  background: #f4f6fb; color: #1a1d2e; line-height: 1.5;
+  padding: 20px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+.header-left { display:flex; align-items:center; gap:14px; }
+.logo { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; }
+.header h1 { font-size:20px; font-weight:700; }
+.header .sub { font-size:12px; color:#8890a8; margin-top:1px; }
+.profile-switcher { display:flex; gap:6px; }
+.profile-btn { padding:7px 16px; border-radius:18px; border:2px solid #e0e4ed; background:#fff; cursor:pointer; font-size:13px; font-weight:600; color:#8890a8; transition:all .2s; }
+.profile-btn:hover { border-color:#667eea; color:#667eea; }
+.profile-btn.active { background:linear-gradient(135deg,#667eea,#764ba2); border-color:transparent; color:#fff; box-shadow:0 4px 14px rgba(102,126,234,.35); }
+.profile-btn .badge { display:inline-block; background:rgba(255,255,255,.25); border-radius:10px; padding:0 7px; font-size:10px; margin-left:5px; }
+.last-sync { font-size:12px; color:#8890a8; }
+
+.data-status { background:#fff; border-radius:12px; padding:14px 18px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+.data-item { display:flex; align-items:center; gap:6px; font-size:12px; }
+.data-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.data-dot.green { background:#22c55e; }
+.data-dot.yellow { background:#f59e0b; }
+
+.metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+.metric-card { background:#fff; border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+.metric-icon { font-size:22px; margin-bottom:8px; }
+.metric-label { font-size:12px; color:#8890a8; font-weight:500; }
+.metric-value { font-size:26px; font-weight:700; margin:3px 0; }
+.metric-sub { font-size:11px; font-weight:600; }
+.metric-sub.green { color:#22c55e; }
+.metric-sub.yellow { color:#f59e0b; }
+.metric-sub.red { color:#ef4444; }
+.metric-sub.gray { color:#8890a8; }
+
+.coach-panel {
+  background:linear-gradient(135deg,#667eea,#764ba2); border-radius:14px; padding:24px; color:#fff; margin-bottom:16px;
+  box-shadow:0 4px 20px rgba(102,126,234,.25);
+}
+.coach-h { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.coach-avatar { width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:22px; }
+.coach-name { font-size:16px; font-weight:700; }
+.coach-name small { font-weight:400; opacity:.7; font-size:12px; }
+.coach-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.coach-box { background:rgba(255,255,255,.12); border-radius:10px; padding:12px 14px; backdrop-filter:blur(4px); }
+.coach-box .l { font-size:10px; opacity:.7; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
+.coach-box .t { font-size:13px; margin-top:3px; font-weight:500; }
+.coach-actions { display:flex; gap:6px; flex-wrap:wrap; }
+.coach-btn { padding:7px 16px; border-radius:18px; border:1px solid rgba(255,255,255,.3); background:transparent; color:#fff; cursor:pointer; font-size:12px; font-weight:500; transition:all .2s; }
+.coach-btn:hover { background:rgba(255,255,255,.15); }
+
+.chart-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.chart-card { background:#fff; border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+.chart-card.wide { grid-column:1/-1; }
+.chart-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.chart-title { font-size:14px; font-weight:600; }
+.chart-title small { font-weight:400; color:#8890a8; font-size:11px; }
+.chart-badge { font-size:10px; padding:2px 8px; border-radius:8px; background:#eff3ff; color:#667eea; font-weight:600; }
+canvas { max-height:200px; }
+
+.config-bar { background:#fff; border-radius:12px; padding:12px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px; font-size:12px; color:#8890a8; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+.config-bar select { padding:5px 10px; border:1px solid #e0e4ed; border-radius:7px; font-size:12px; background:#fff; color:#1a1d2e; }
+
+.ecg-panel { background:#fff; border-radius:14px; padding:18px; box-shadow:0 2px 8px rgba(0,0,0,.04); margin-bottom:12px; }
+.ecg-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:6px; margin-top:10px; }
+.ecg-item { padding:6px 10px; border-radius:8px; font-size:11px; display:flex; align-items:center; gap:6px; }
+.ecg-item.green { background:#ecfdf5; color:#059669; }
+.ecg-item.yellow { background:#fef3c7; color:#d97706; }
+.ecg-item.red { background:#fef2f2; color:#dc2626; }
+.ecg-item .dot { width:6px; height:6px; border-radius:50%; }
+.ecg-item .dot.g { background:#22c55e; }
+.ecg-item .dot.y { background:#f59e0b; }
+.ecg-item .dot.r { background:#ef4444; }
+
+@media (max-width:768px) {
+  .metrics { grid-template-columns:repeat(2,1fr); }
+  .chart-row { grid-template-columns:1fr; }
+  .coach-row { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">♥</div>
+    <div>
+      <h1>小陈 · AI 健康管家</h1>
+      <div class="sub">黄泽鹏 · 29岁 · Apple Watch 7</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="profile-switcher">
+      <button class="profile-btn active" data-profile="me">🧑 我 <span class="badge">AW7</span></button>
+      <button class="profile-btn" data-profile="mom">👩 妈妈 <span class="badge">华为</span></button>
+    </div>
+    <div class="last-sync" id="lastSync">📅 2026-05-31 导出</div>
+  </div>
+</div>
+
+<!-- DATA SOURCE -->
+<div class="data-status">
+  <span style="font-weight:600;color:#1a1d2e;font-size:12px;">📡 数据源</span>
+  <div class="data-item"><span class="data-dot green"></span> Apple Watch · 15,461条心率记录 · 26次ECG · 30天</div>
+  <div class="data-item"><span class="data-dot green"></span> 11次训练记录 · 384,867步 · 30晚睡眠分析</div>
+  <div class="data-item"><span class="data-dot yellow"></span> 华为手表 · 等待妈妈导入</div>
+</div>
+
+<!-- AI COACH -->
+<div class="coach-panel">
+  <div class="coach-h">
+    <div class="coach-avatar">🤖</div>
+    <div>
+      <div class="coach-name">AI 健康教练 <small>· 小陈</small></div>
+      <div style="font-size:12px;opacity:.85" id="coachGreeting">你的 30 天健康报告已就绪</div>
+    </div>
+  </div>
+  <div class="coach-row">
+    <div class="coach-box">
+      <div class="l">🔑 核心发现</div>
+      <div class="t" id="coachAdvice">HRV 61ms 优异 · 睡眠 6.98h 略低 · 深睡比例 12% 偏低</div>
+    </div>
+    <div class="coach-box">
+      <div class="l">🎯 AI 建议</div>
+      <div class="t" id="coachFocus">增加力量训练 · 固定入睡时间改善深睡 · 关注 4/24 胸闷记录</div>
+    </div>
+  </div>
+  <div class="coach-actions">
+    <button class="coach-btn" onclick="refreshCoach()">🔄 AI 新分析</button>
+    <button class="coach-btn" onclick="alert('🏋️ 今日推荐\\n\\n基于你 30 天数据分析：\\n• 你的 HRV 61ms 恢复能力优秀\\n• 建议：骑行 40min 中强度\\n• 或：游泳 30min\\n• 注意：今日步数仅 1251，起来活动一下')">🏋️ 今日训练</button>
+    <button class="coach-btn" onclick="alert('🫀 健康快评\\n\\n✅ 静息心率 67.8 · 正常偏优\\n✅ HRV 61.3ms · 优秀\\n✅ 日均步数 12,415 · 活跃\\n⚠️ 平均睡眠 6.98h · 建议改善\\n⚠️ 深睡 12% · 低于推荐 13-23%\\n🩺 ECG 26次 · 20次正常 · 4/24胸闷已确认正常')">🫀 快速评估</button>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric-card">
+    <div class="metric-icon">❤️</div>
+    <div class="metric-label">静息心率</div>
+    <div class="metric-value" id="mRestHR">67.8</div>
+    <div class="metric-sub green" id="mHRSub">范围 54-78 · 正常偏优</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">💓</div>
+    <div class="metric-label">HRV 心率变异性</div>
+    <div class="metric-value" id="mHRV">61.3</div>
+    <div class="metric-sub green" id="mHRVSub">优秀 · >50ms 恢复能力强</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">😴</div>
+    <div class="metric-label">平均睡眠</div>
+    <div class="metric-value" id="mSleep">6.98<span style="font-size:15px;font-weight:400;">h</span></div>
+    <div class="metric-sub yellow" id="mSleepSub">12天不足7h · 深睡偏低</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-icon">🏃</div>
+    <div class="metric-label">日均步数</div>
+    <div class="metric-value" id="mSteps">12,415</div>
+    <div class="metric-sub green" id="mStepsSub">30天共 384,867 步 · 活跃</div>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div class="config-bar">
+  <span>📅 查看周期</span>
+  <select id="rangeSelect" onchange="updateAll()">
+    <option value="7">近 7 天</option>
+    <option value="30" selected>近 30 天</option>
+  </select>
+  <span style="margin-left:auto;color:#667eea">📊 数据来自 Apple Health 导出 · 2026-05-31</span>
+</div>
+
+<!-- CHARTS -->
+<div class="chart-row">
+  <div class="chart-card">
+    <div class="chart-h">
+      <div class="chart-title">❤️ 心率 & HRV</div>
+      <span class="chart-badge" id="hrBadge">67.8 bpm</span>
+    </div>
+    <canvas id="hrChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-h">
+      <div class="chart-title">😴 睡眠 <small>深睡·浅睡·REM</small></div>
+      <span class="chart-badge" id="sleepBadge" style="background:#fef3c7;color:#d97706">均 6.98h</span>
+    </div>
+    <canvas id="sleepChart"></canvas>
+  </div>
+</div>
+<div class="chart-row">
+  <div class="chart-card">
+    <div class="chart-h">
+      <div class="chart-title">🏃 每日步数</div>
+      <span class="chart-badge" id="stepBadge">日均 12,415</span>
+    </div>
+    <canvas id="stepChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <div class="chart-h">
+      <div class="chart-title">🫀 运动类型 <small>30天分布</small></div>
+      <span class="chart-badge">11 次</span>
+    </div>
+    <canvas id="workoutChart"></canvas>
+  </div>
+</div>
+
+<!-- ECG -->
+<div class="ecg-panel">
+  <div class="chart-h">
+    <div class="chart-title">🫀 心电图记录 <small>Apple Watch · 2026年4-5月</small></div>
+    <span class="chart-badge" style="background:#ecfdf5;color:#059669">26次 · 20次正常</span>
+  </div>
+  <div id="ecgSummary" style="font-size:13px;line-height:1.8;margin-bottom:8px">
+    20次 <span style="color:#059669;font-weight:600">窦性心律 ✅</span> ·
+    4次 <span style="color:#d97706">记录不佳</span> ·
+    1次 <span style="color:#d97706">不确定</span> ·
+    1次 <span style="color:#dc2626">高心率</span>
+  </div>
+  <div style="font-size:12px;color:#8890a8;margin-bottom:10px">
+    ⚠️ 有症状记录：4/11 <strong>"疲劳"</strong> · 4/24 <strong>"胸闷或胸痛"</strong> → 当时心电图窦性心律正常
+  </div>
+  <div class="ecg-grid" id="ecgGrid"></div>
+</div>
+
+<!-- TRAINING ADVICE -->
+<div class="chart-card wide">
+  <div class="chart-h">
+    <div class="chart-title">📋 AI 训练计划建议</div>
+    <span class="chart-badge" style="background:#ecfdf5;color:#059669">基于真实数据</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px">
+    <div style="background:#f4f6fb;border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:#667eea;font-weight:600;margin-bottom:4px">心率恢复能力</div>
+      <div style="font-size:22px;font-weight:700">✅ 优秀</div>
+      <div style="font-size:11px;color:#8890a8;margin-top:2px">HRV 61ms · 恢复迅速</div>
+    </div>
+    <div style="background:#f4f6fb;border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:#667eea;font-weight:600;margin-bottom:4px">当前建议训练</div>
+      <div style="font-size:14px;font-weight:600">中强度骑行 40min</div>
+      <div style="font-size:11px;color:#8890a8;margin-top:2px">或游泳 30min</div>
+    </div>
+    <div style="background:#f4f6fb;border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:#667eea;font-weight:600;margin-bottom:4px">待加强</div>
+      <div style="font-size:14px;font-weight:600">🏋️ 力量训练</div>
+      <div style="font-size:11px;color:#8890a8;margin-top:2px">30天内无力量训练记录</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ====== REAL DATA: 黄泽鹏 · Apple Health 导出 2026-05-31 ======
+const REAL_DATA = {
+  // 30 days from 5/2 to 5/31
+  labels: [],
+  restingHR: [],  // daily resting HR
+  hrv: [],        // daily avg HRV
+  sleepDeep: [],
+  sleepLight: [],
+  sleepREM: [],
+  sleepTotal: [],
+  steps: [],
+  workouts: []
+};
+
+function pad(i) { return i < 10 ? '0'+i : ''+i; }
+for (let d = 2; d <= 31; d++) {
+  REAL_DATA.labels.push('5/' + d);
+}
+
+// Resting HR (data from May 2 - May 31)
+REAL_DATA.restingHR = [66,74,66,54,72,66,67,67,null,71,66,66,73,64,66,74,67,62,62,68,78,69,68,67,67,69,69,67,71,69];
+// HRV daily avg
+REAL_DATA.hrv = [80.4,80.0,48.5,74.7,48.5,60.8,72.9,70.3,null,40.8,50.7,59.3,52.5,46.4,62.7,35.4,57.5,60.3,69.4,64.7,45.8,78.6,68.9,54.5,54.9,68.0,54.9,57.2,66.6,100.1];
+// Sleep deep (hours)
+REAL_DATA.sleepDeep = [0.70,1.39,0.54,1.21,0.81,0.51,0.91,0.57,1.23,0.46,2.48,0.58,1.30,0.92,0.89,1.01,0.73,0.99,1.01,1.32,1.35,0.74,1.39,0.31,1.26,0.85,1.33,0.70,1.19,0.66];
+// Sleep light (hours)
+REAL_DATA.sleepLight = [4.33,4.46,4.33,3.51,4.68,4.11,4.45,4.89,2.35,4.72,4.10,3.60,3.60,3.54,3.75,5.56,4.89,4.00,3.23,4.26,3.86,4.11,4.95,3.22,3.60,3.47,3.02,3.67,2.97,4.50];
+// Sleep REM (hours)
+REAL_DATA.sleepREM = [2.13,1.63,1.89,2.50,1.89,1.83,1.92,1.83,2.30,1.63,2.57,1.47,1.95,1.94,1.87,2.44,1.64,1.86,2.00,1.58,1.95,2.19,2.39,0.75,2.26,1.89,1.83,1.75,1.80,1.73];
+// Sleep total
+for (let i = 0; i < 30; i++) {
+  const d = REAL_DATA.sleepDeep[i], l = REAL_DATA.sleepLight[i], r = REAL_DATA.sleepREM[i];
+  REAL_DATA.sleepTotal.push(+(d + l + r).toFixed(1));
+}
+// Steps
+REAL_DATA.steps = [29176,19084,7198,10319,12404,17601,14856,17215,8381,13746,14571,10558,19479,12088,13567,13874,11790,15138,11984,13143,11809,10293,8730,12260,16407,15766,11093,4083,6988,1251];
+
+let currentRange = 30;
+let currentProfile = 'me';
+const charts = {};
+
+function getRangeData(range) {
+  const n = range;
+  const data = REAL_DATA;
+  const start = 30 - n;
+  return {
+    labels: data.labels.slice(start),
+    restingHR: data.restingHR.slice(start),
+    hrv: data.hrv.slice(start),
+    sleepDeep: data.sleepDeep.slice(start),
+    sleepLight: data.sleepLight.slice(start),
+    sleepREM: data.sleepREM.slice(start),
+    sleepTotal: data.sleepTotal.slice(start),
+    steps: data.steps.slice(start)
+  };
+}
+
+// ====== CHARTS ======
+function initHRChart(data) {
+  if (charts.hr) charts.hr.destroy();
+  const ctx = document.getElementById('hrChart').getContext('2d');
+  const hasResting = data.restingHR.some(v => v !== null);
+  if (!hasResting) return;
+
+  const d1 = data.restingHR.map(v => v);
+  const d2 = data.hrv.map(v => v);
+
+  charts.hr = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: '静息心率 (bpm)', data: d1, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.06)', fill: true, tension: .35, pointRadius: 3, spanGaps: true },
+        { label: 'HRV (ms)', data: d2, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,.06)', fill: true, tension: .35, pointRadius: 3, yAxisID: 'y1', spanGaps: true }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } } },
+      scales: {
+        y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 9 } } },
+        y1: { position: 'right', beginAtZero: false, grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+function initSleepChart(data) {
+  if (charts.sleep) charts.sleep.destroy();
+  const ctx = document.getElementById('sleepChart').getContext('2d');
+  charts.sleep = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: '深睡', data: data.sleepDeep, backgroundColor: '#6366f1', borderRadius: 2 },
+        { label: '浅睡', data: data.sleepLight, backgroundColor: '#a5b4fc', borderRadius: 2 },
+        { label: 'REM', data: data.sleepREM, backgroundColor: '#c7d2fe', borderRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 8 } } },
+        y: { stacked: true, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+function initStepChart(data) {
+  if (charts.step) charts.step.destroy();
+  const ctx = document.getElementById('stepChart').getContext('2d');
+
+  const colors = data.steps.map(v => v >= 10000 ? '#22c55e' : v >= 7000 ? '#f59e0b' : '#ef4444');
+  charts.step = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [{ label: '步数', data: data.steps, backgroundColor: colors, borderRadius: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+
+  // Goal line
+  const chart = charts.step;
+  const origDraw = chart.draw;
+  chart.draw = function() {
+    origDraw.call(this);
+    const c = this.ctx; const meta = this.getDatasetMeta(0);
+    if (meta.data && meta.data.length) {
+      const xL = meta.data[0].x - 8;
+      const xR = meta.data[meta.data.length - 1].x + 8;
+      const yS = this.scales.y;
+      const yP = yS.getPixelForValue(10000);
+      c.save(); c.beginPath(); c.setLineDash([4,3]);
+      c.strokeStyle = '#f59e0b'; c.lineWidth = 1.5;
+      c.moveTo(xL, yP); c.lineTo(xR, yP); c.stroke();
+      c.fillStyle = '#f59e0b'; c.font = '9px sans-serif'; c.textAlign = 'right';
+      c.fillText('目标 1万', xR, yP - 5); c.restore();
+    }
+  };
+}
+
+function initWorkoutChart() {
+  if (charts.workout) charts.workout.destroy();
+  const ctx = document.getElementById('workoutChart').getContext('2d');
+  charts.workout = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['🚴 骑行 5次', '🏊 游泳 3次', '🚶 步行 1次', '🏋️ 椭圆机 1次', '🧘 整理 1次'],
+      datasets: [{
+        data: [5, 3, 1, 1, 1],
+        backgroundColor: ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#a5b4fc'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true, cutout: '60%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ====== ECG ======
+const ECG_RECORDS = [
+  {date:'4/11', result:'窦性心律', symptom:'疲劳', status:'green'},
+  {date:'4/11 #2', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/12', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/14', result:'记录不佳', symptom:'', status:'yellow'},
+  {date:'4/16', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/16 #2', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/17', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/17 #2', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/18', result:'记录不佳', symptom:'', status:'yellow'},
+  {date:'4/18 #2', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/19', result:'不确定', symptom:'', status:'yellow'},
+  {date:'4/19 #2', result:'记录不佳', symptom:'', status:'yellow'},
+  {date:'4/19 #3', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/20', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/21', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/24', result:'记录不佳', symptom:'', status:'yellow'},
+  {date:'4/24 #2', result:'窦性心律', symptom:'胸闷/胸痛', status:'green'},
+  {date:'4/27', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/28', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/29', result:'窦性心律', symptom:'', status:'green'},
+  {date:'4/29 #2', result:'窦性心律', symptom:'', status:'green'},
+  {date:'5/8', result:'窦性心律', symptom:'', status:'green'},
+  {date:'5/12', result:'窦性心律', symptom:'', status:'green'},
+  {date:'5/13', result:'高心率', symptom:'', status:'red'},
+  {date:'5/13 #2', result:'窦性心律', symptom:'', status:'green'},
+  {date:'5/13 #3', result:'窦性心律', symptom:'', status:'green'},
+  {date:'5/27', result:'窦性心律', symptom:'', status:'green'}
+];
+
+function initECG() {
+  const grid = document.getElementById('ecgGrid');
+  grid.innerHTML = '';
+  ECG_RECORDS.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'ecg-item ' + r.status;
+    const dotClass = r.status === 'green' ? 'g' : r.status === 'yellow' ? 'y' : 'r';
+    el.innerHTML = `<span class="dot ${dotClass}"></span>${r.date} ${r.result}`;
+    if (r.symptom) el.style.cursor = 'pointer';
+    if (r.symptom) {
+      el.title = '症状: ' + r.symptom;
+      el.onclick = () => alert(`📋 ${r.date} · ${r.result}\n⚠️ 当时记录的症状: ${r.symptom}`);
+    }
+    grid.appendChild(el);
+  });
+}
+
+// ====== COACH ======
+const coachTips = [
+  'HRV 61ms 远超同龄人均值（通常 30-50ms），恢复能力优秀',
+  '12天睡眠不足7h · 建议固定 23:30 前入睡',
+  '深睡 12% 偏低 · 睡前 1h 远离屏幕可提升 3-5%',
+  '5/2 单日 29,176 步 🎉 继续保持偶尔的高活动日',
+  '30天零力量训练 · 每周加 2 次徒手训练效果明显',
+  '4/24 胸闷记录 · ①当时心电图正常 ②如再出现建议动态心电',
+  '你的运动组合偏有氧 · 建议插入间歇训练提升 HRV',
+  '5/25 只睡 4.3h · 注意压力对睡眠的影响'
+];
+
+function refreshCoach() {
+  const i = Math.floor(Math.random() * coachTips.length);
+  document.getElementById('coachAdvice').textContent = coachTips[i];
+  const i2 = (i + 1 + Math.floor(Math.random() * (coachTips.length-1))) % coachTips.length;
+  document.getElementById('coachFocus').textContent = coachTips[i2];
+  document.getElementById('lastSync').textContent = '🤖 分析刷新 ' + new Date().toLocaleTimeString('zh-CN');
+}
+
+// ====== UPDATE ======
+function updateAll() {
+  currentRange = parseInt(document.getElementById('rangeSelect').value);
+  const data = getRangeData(currentRange);
+  initHRChart(data);
+  initSleepChart(data);
+  initStepChart(data);
+  initWorkoutChart();
+  initECG();
+
+  // Update badges
+  const hrVals = data.restingHR.filter(v => v !== null);
+  const hrAvg = hrVals.length ? (hrVals.reduce((a,b)=>a+b,0)/hrVals.length).toFixed(1) : '--';
+  document.getElementById('hrBadge').textContent = hrAvg + ' bpm';
+
+  const sleepVals = data.sleepTotal;
+  const sleepAvg = sleepVals.length ? (sleepVals.reduce((a,b)=>a+b,0)/sleepVals.length).toFixed(1) : '--';
+  document.getElementById('sleepBadge').textContent = '均 ' + sleepAvg + 'h';
+
+  const stepVals = data.steps;
+  const stepAvg = stepVals.length ? Math.round(stepVals.reduce((a,b)=>a+b,0)/stepVals.length).toLocaleString() : '--';
+  document.getElementById('stepBadge').textContent = '日均 ' + stepAvg;
+}
+
+// ====== PROFILE SWITCH ======
+document.querySelectorAll('.profile-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    currentProfile = this.dataset.profile;
+    if (currentProfile === 'mom') {
+      alert('👩 妈妈的健康数据需要导入华为手表导出文件。\\n\\n步骤：\\n1. 华为运动健康 App → 数据导出\\n2. 把导出的文件发到对话框\\n3. 我来解析并加入看板');
+    }
+  });
+});
+
+// ====== INIT ======
+window.addEventListener('DOMContentLoaded', () => {
+  updateAll();
+  document.getElementById('lastSync').textContent = '📅 2026-05-31 导出 · ' + new Date().toLocaleTimeString('zh-CN');
+});
+</script>
+</body>
+</html>

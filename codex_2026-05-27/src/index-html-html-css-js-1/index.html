@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>直播间网络监控系统</title>
+  <style>
+    :root {
+      --bg: #050914;
+      --panel: rgba(8, 19, 35, 0.84);
+      --panel-strong: rgba(11, 30, 53, 0.92);
+      --line: rgba(80, 176, 255, 0.28);
+      --line-strong: rgba(82, 190, 255, 0.64);
+      --text: #d7ecff;
+      --muted: #7f9ab4;
+      --green: #22e68a;
+      --blue: #45b9ff;
+      --orange: #ffad42;
+      --red: #ff4f5f;
+      --yellow: #ffd166;
+      --shadow: 0 0 24px rgba(44, 171, 255, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+      cursor: default;
+      user-select: none;
+    }
+
+    body {
+      position: relative;
+      background:
+        radial-gradient(circle at 22% 12%, rgba(31, 119, 193, 0.19), transparent 34%),
+        radial-gradient(circle at 80% 22%, rgba(30, 222, 147, 0.11), transparent 28%),
+        linear-gradient(135deg, #050914 0%, #07111f 44%, #030711 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(65, 173, 255, 0.09) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(65, 173, 255, 0.08) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.18));
+      z-index: 0;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: -18%;
+      height: 18%;
+      pointer-events: none;
+      background: linear-gradient(to bottom, transparent, rgba(59, 196, 255, 0.08), transparent);
+      animation: scan 8s linear infinite;
+      z-index: 1;
+    }
+
+    @keyframes scan {
+      from { transform: translateY(0); }
+      to { transform: translateY(680%); }
+    }
+
+    .app {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: clamp(12px, 1.3vw, 22px);
+      width: 100vw;
+      height: 100vh;
+      padding: clamp(14px, 1.55vw, 30px);
+    }
+
+    .topbar,
+    .warning,
+    .card,
+    .log-panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(12, 31, 53, 0.88), rgba(6, 16, 30, 0.82));
+      box-shadow: var(--shadow), inset 0 0 32px rgba(66, 160, 255, 0.06);
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
+      align-items: center;
+      min-height: 76px;
+      padding: 14px 18px;
+      border-radius: 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(69, 185, 255, 0.75);
+      border-radius: 8px;
+      background: rgba(20, 85, 142, 0.22);
+      box-shadow: 0 0 18px rgba(69, 185, 255, 0.26);
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border: 2px solid transparent;
+      border-top-color: var(--green);
+      border-right-color: var(--blue);
+      border-radius: 50%;
+      animation: rotateMark 3.6s linear infinite;
+    }
+
+    .brand-mark::after {
+      inset: 14px;
+      border-top-color: var(--orange);
+      border-right-color: transparent;
+      animation-duration: 2.2s;
+      animation-direction: reverse;
+    }
+
+    @keyframes rotateMark {
+      to { transform: rotate(360deg); }
+    }
+
+    .title {
+      min-width: 0;
+    }
+
+    .title h1 {
+      margin: 0;
+      color: #ecf8ff;
+      font-size: clamp(22px, 2vw, 34px);
+      font-weight: 700;
+      line-height: 1.18;
+      text-shadow: 0 0 18px rgba(76, 190, 255, 0.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .title p,
+    .side-note {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: clamp(12px, 0.86vw, 15px);
+    }
+
+    .lock-state {
+      justify-self: center;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border: 1px solid rgba(34, 230, 138, 0.48);
+      border-radius: 999px;
+      color: var(--green);
+      background: rgba(34, 230, 138, 0.08);
+      font-size: clamp(13px, 1vw, 16px);
+      font-weight: 700;
+      box-shadow: 0 0 20px rgba(34, 230, 138, 0.13);
+      white-space: nowrap;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px var(--green);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.55; transform: scale(0.85); }
+      50% { opacity: 1; transform: scale(1.18); }
+    }
+
+    .clock-wrap {
+      justify-self: end;
+      text-align: right;
+    }
+
+    .clock {
+      color: #ffffff;
+      font-size: clamp(22px, 2.25vw, 38px);
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      line-height: 1;
+      text-shadow: 0 0 16px rgba(69, 185, 255, 0.32);
+    }
+
+    .red-tip {
+      margin-top: 8px;
+      color: var(--red);
+      font-size: clamp(12px, 0.9vw, 15px);
+      font-weight: 700;
+      text-shadow: 0 0 12px rgba(255, 79, 95, 0.28);
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(330px, 0.92fr) minmax(480px, 1.45fr) minmax(330px, 0.92fr);
+      gap: clamp(12px, 1.25vw, 22px);
+      min-height: 0;
+    }
+
+    .column {
+      display: grid;
+      gap: clamp(12px, 1.25vw, 22px);
+      min-height: 0;
+    }
+
+    .left,
+    .right {
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+    }
+
+    .center {
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .warning {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(20px, 2.1vw, 34px);
+      border-color: rgba(255, 173, 66, 0.5);
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(255, 79, 95, 0.12), transparent 34%, rgba(34, 230, 138, 0.05)),
+        linear-gradient(180deg, rgba(28, 30, 42, 0.93), rgba(9, 18, 31, 0.9));
+      box-shadow: 0 0 30px rgba(255, 173, 66, 0.13), inset 0 0 34px rgba(255, 173, 66, 0.07);
+    }
+
+    .warning::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--red), var(--orange), var(--green));
+      box-shadow: 0 0 18px rgba(255, 173, 66, 0.6);
+    }
+
+    .warning-main {
+      margin: 0 0 10px;
+      color: #fff4de;
+      font-size: clamp(25px, 2.45vw, 44px);
+      font-weight: 800;
+      line-height: 1.18;
+      text-shadow: 0 0 20px rgba(255, 173, 66, 0.28);
+    }
+
+    .warning-sub {
+      margin: 0;
+      color: #f2fbff;
+      font-size: clamp(19px, 1.55vw, 28px);
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .warning-risk {
+      margin: 12px 0 0;
+      color: #ffc7c7;
+      font-size: clamp(15px, 1.1vw, 20px);
+      line-height: 1.35;
+    }
+
+    .big-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(12px, 1.15vw, 20px);
+      min-height: 0;
+    }
+
+    .metric-tile {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+      padding: clamp(14px, 1.5vw, 24px);
+      border: 1px solid rgba(82, 190, 255, 0.22);
+      border-radius: 8px;
+      background: rgba(7, 20, 36, 0.72);
+      box-shadow: inset 0 0 28px rgba(68, 185, 255, 0.05);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: clamp(12px, 0.9vw, 16px);
+    }
+
+    .metric-value {
+      margin-top: 8px;
+      color: #f3fbff;
+      font-size: clamp(28px, 3vw, 54px);
+      font-weight: 800;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 22px rgba(69, 185, 255, 0.28);
+    }
+
+    .metric-unit {
+      margin-left: 7px;
+      color: var(--blue);
+      font-size: clamp(13px, 1vw, 17px);
+      font-weight: 700;
+    }
+
+    .mini-trend {
+      position: relative;
+      height: 5px;
+      margin-top: 15px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(127, 154, 180, 0.16);
+    }
+
+    .mini-trend span {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: var(--fill, 62%);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      box-shadow: 0 0 12px rgba(34, 230, 138, 0.34);
+      transition: width 550ms ease;
+    }
+
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      padding: clamp(14px, 1.35vw, 22px);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-top: 1px solid rgba(121, 218, 255, 0.26);
+      opacity: 0.85;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      margin: 0;
+      color: #edf8ff;
+      font-size: clamp(16px, 1.25vw, 22px);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 74px;
+      justify-content: flex-end;
+      color: var(--green);
+      font-size: clamp(12px, 0.86vw, 15px);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status.blue { color: var(--blue); }
+    .status.orange { color: var(--orange); }
+
+    .status::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: auto;
+    }
+
+    .data-line {
+      min-width: 0;
+      padding: 11px 12px;
+      border: 1px solid rgba(82, 190, 255, 0.16);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    .data-line span {
+      display: block;
+      color: var(--muted);
+      font-size: clamp(11px, 0.78vw, 13px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .data-line strong {
+      display: block;
+      margin-top: 5px;
+      color: #f7fcff;
+      font-size: clamp(18px, 1.45vw, 27px);
+      font-weight: 800;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .data-line em {
+      color: var(--blue);
+      font-size: 0.58em;
+      font-style: normal;
+      margin-left: 4px;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .route-line {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      margin-top: auto;
+      color: var(--muted);
+      font-size: clamp(12px, 0.86vw, 14px);
+    }
+
+    .route-track {
+      height: 2px;
+      overflow: hidden;
+      background: rgba(127, 154, 180, 0.2);
+    }
+
+    .route-track span {
+      display: block;
+      width: 42%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--blue), transparent);
+      animation: flow 2.2s linear infinite;
+    }
+
+    @keyframes flow {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(260%); }
+    }
+
+    .footer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: clamp(12px, 1.25vw, 22px);
+      min-height: 160px;
+      max-height: 22vh;
+    }
+
+    .log-panel {
+      min-height: 0;
+      padding: 14px 18px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .log-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 9px;
+      color: #eaf8ff;
+      font-size: clamp(14px, 1vw, 18px);
+      font-weight: 700;
+    }
+
+    .log-list {
+      height: calc(100% - 32px);
+      overflow: hidden;
+      color: #9fc1d8;
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: clamp(12px, 0.82vw, 15px);
+      line-height: 1.66;
+    }
+
+    .log-entry {
+      display: flex;
+      gap: 12px;
+      border-bottom: 1px solid rgba(127, 154, 180, 0.08);
+      white-space: nowrap;
+    }
+
+    .log-entry time {
+      color: var(--green);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .summary-card {
+      padding: 16px 18px;
+      border: 1px solid rgba(255, 173, 66, 0.32);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(35, 24, 16, 0.82), rgba(10, 16, 27, 0.84));
+      box-shadow: 0 0 22px rgba(255, 173, 66, 0.1);
+    }
+
+    .summary-card h2 {
+      margin: 0 0 12px;
+      color: #ffe4b8;
+      font-size: clamp(15px, 1.05vw, 19px);
+      line-height: 1.25;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 0;
+      border-top: 1px solid rgba(255, 173, 66, 0.14);
+      color: var(--muted);
+      font-size: clamp(12px, 0.86vw, 15px);
+    }
+
+    .summary-item strong {
+      color: #fff4de;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1180px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .lock-state,
+      .clock-wrap {
+        justify-self: start;
+        text-align: left;
+      }
+
+      .main {
+        grid-template-columns: 1fr;
+      }
+
+      .left,
+      .right {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: auto;
+      }
+
+      .footer {
+        grid-template-columns: 1fr;
+        max-height: none;
+      }
+
+      .log-panel {
+        min-height: 220px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .big-grid,
+      .left,
+      .right,
+      .card-body {
+        grid-template-columns: 1fr;
+      }
+
+      .title h1 {
+        white-space: normal;
+      }
+
+      .warning-main {
+        font-size: 25px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div class="title">
+          <h1>直播间网络监控系统</h1>
+          <p>私人设备 / 禁止触碰</p>
+        </div>
+      </div>
+      <div class="lock-state">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        LOCKED / MONITORING
+      </div>
+      <div class="clock-wrap">
+        <div id="clock" class="clock">--:--:--</div>
+        <div class="red-tip">非本人请勿操作此电脑</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="column left" aria-label="直播间与线路状态">
+        <article class="card">
+          <div class="card-head">
+            <h2 class="card-title">直播间一</h2>
+            <span class="status">正常</span>
+          </div>
+          <div class="card-body">
+            <div class="data-line">
+              <span>在线人数</span>
+              <strong><b id="room1">1268</b><em>人</em></strong>
+            </div>
+            <div class="data-line">
+              <span>推流码率</span>
+              <strong><b id="bitrate1">8.4</b><em>Mbps</em></strong>
+            </div>
+            <div class="data-line wide">
+              <span>任务状态</span>
+              <strong><b>监控中</b></strong>
+            </div>
+          </div>
+          <div class="route-line"><span>CDN-A</span><div class="route-track"><span></span></div><span>Live-01</span></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2 class="card-title">直播间二</h2>
+            <span class="status blue">监控中</span>
+          </div>
+          <div class="card-body">
+            <div class="data-line">
+              <span>在线人数</span>
+              <strong><b id="room2">842</b><em>人</em></strong>
+            </div>
+            <div class="data-line">
+              <span>推流码率</span>
+              <strong><b id="bitrate2">6.9</b><em>Mbps</em></strong>
+            </div>
+            <div class="data-line wide">
+              <span>任务状态</span>
+              <strong><b>推流稳定</b></strong>
+            </div>
+          </div>
+          <div class="route-line"><span>CDN-B</span><div class="route-track"><span></span></div><span>Live-02</span></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2 class="card-title">推流状态</h2>
+            <span class="status">推流稳定</span>
+          </div>
+          <div class="card-body">
+            <div class="data-line">
+              <span>上行峰值</span>
+              <strong><b id="peakUp">31.4</b><em>Mbps</em></strong>
+            </div>
+            <div class="data-line">
+              <span>稳定时长</span>
+              <strong><b id="uptime">08:42</b><em>h</em></strong>
+            </div>
+            <div class="data-line wide">
+              <span>输出通道</span>
+              <strong><b>RTMP / SRT</b></strong>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="column center" aria-label="核心警示与实时指标">
+        <div class="warning">
+          <p class="warning-main">⚠ 私人电脑正在运行直播间网络监控任务</p>
+          <p class="warning-sub">请勿触碰、移动、关机或拔线</p>
+          <p class="warning-risk">非授权操作可能导致直播间断流</p>
+        </div>
+
+        <div class="big-grid">
+          <div class="metric-tile">
+            <div class="metric-label">当前上行网速</div>
+            <div class="metric-value"><span id="upSpeed">28.6</span><span class="metric-unit">Mbps</span></div>
+            <div class="mini-trend"><span id="upFill"></span></div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-label">当前下行网速</div>
+            <div class="metric-value"><span id="downSpeed">92.4</span><span class="metric-unit">Mbps</span></div>
+            <div class="mini-trend"><span id="downFill"></span></div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-label">CPU 占用率</div>
+            <div class="metric-value"><span id="cpu">42</span><span class="metric-unit">%</span></div>
+            <div class="mini-trend"><span id="cpuFill"></span></div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-label">内存占用率</div>
+            <div class="metric-value"><span id="memory">63</span><span class="metric-unit">%</span></div>
+            <div class="mini-trend"><span id="memFill"></span></div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-label">网络延迟</div>
+            <div class="metric-value"><span id="latency">18</span><span class="metric-unit">ms</span></div>
+            <div class="mini-trend"><span id="latencyFill"></span></div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-label">丢包率</div>
+            <div class="metric-value"><span id="packetLoss">0.03</span><span class="metric-unit">%</span></div>
+            <div class="mini-trend"><span id="lossFill"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="column right" aria-label="线路与设备状态">
+        <article class="card">
+          <div class="card-head">
+            <h2 class="card-title">线路一</h2>
+            <span class="status">正常</span>
+          </div>
+          <div class="card-body">
+            <div class="data-line">
+              <span>线路状态</span>
+              <strong><b id="line1State">正常</b></strong>
+            </div>
+            <div class="data-line">
+              <span>延迟</span>
+              <strong><b id="line1Latency">17</b><em>ms</em></strong>
+            </div>
+            <div class="data-line wide">
+              <span>链路角色</span>
+              <strong><b>主线路运行</b></strong>
+            </div>
+          </div>
+          <div class="route-line"><span>ISP-1</span><div class="route-track"><span></span></div><span>Core Switch</span></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2 class="card-title">线路二</h2>
+            <span class="status orange">备用线路待命</span>
+          </div>
+          <div class="card-body">
+            <div class="data-line">
+              <span>线路状态</span>
+              <strong><b id="line2State">备用线路待命</b></strong>
+            </div>
+            <div class="data-line">
+              <span>延迟</span>
+              <strong><b id="line2Latency">24</b><em>ms</em></strong>
+            </div>
+            <div class="data-line wide">
+              <span>链路角色</span>
+              <strong><b>自动接管待命</b></strong>
+            </div>
+          </div>
+          <div class="route-line"><span>ISP-2</span><div class="route-track"><span></span></div><span>Backup Gateway</span></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2 class="card-title">设备状态</h2>
+            <span class="status blue">监控中</span>
+          </div>
+          <div class="card-body">
+            <div class="data-line">
+              <span>CPU</span>
+              <strong><b id="cpuMini">42</b><em>%</em></strong>
+            </div>
+            <div class="data-line">
+              <span>Memory</span>
+              <strong><b id="memMini">63</b><em>%</em></strong>
+            </div>
+            <div class="data-line wide">
+              <span>本机锁定策略</span>
+              <strong><b>Unauthorized touch detection enabled</b></strong>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <section class="log-panel" aria-label="系统日志">
+        <div class="log-head">
+          <span>实时事件日志</span>
+          <span class="status blue">Monitoring</span>
+        </div>
+        <div id="logList" class="log-list"></div>
+      </section>
+      <aside class="summary-card">
+        <h2>核心状态摘要</h2>
+        <div class="summary-item"><span>任务模式</span><strong>Live Ops</strong></div>
+        <div class="summary-item"><span>采样周期</span><strong>1s</strong></div>
+        <div class="summary-item"><span>线路切换</span><strong>Auto</strong></div>
+        <div class="summary-item"><span>操作权限</span><strong>LOCKED</strong></div>
+      </aside>
+    </footer>
+  </div>
+
+  <script>
+    const state = {
+      upSpeed: 28.6,
+      downSpeed: 92.4,
+      cpu: 42,
+      memory: 63,
+      latency: 18,
+      packetLoss: 0.03,
+      room1: 1268,
+      room2: 842,
+      bitrate1: 8.4,
+      bitrate2: 6.9,
+      line1Latency: 17,
+      line2Latency: 24,
+      peakUp: 31.4,
+      startedAt: Date.now() - 8 * 60 * 60 * 1000 - 42 * 60 * 1000
+    };
+
+    const logs = [
+      "Live Room 1 bitrate stable",
+      "Line 1 latency normal",
+      "Backup line standby",
+      "Unauthorized touch detection enabled",
+      "Live Room 2 audience count synced",
+      "RTMP upstream status healthy",
+      "Packet loss below threshold",
+      "Main route heartbeat accepted",
+      "Monitoring process locked",
+      "Device temperature within range"
+    ];
+
+    const elements = {
+      clock: document.getElementById("clock"),
+      upSpeed: document.getElementById("upSpeed"),
+      downSpeed: document.getElementById("downSpeed"),
+      cpu: document.getElementById("cpu"),
+      memory: document.getElementById("memory"),
+      latency: document.getElementById("latency"),
+      packetLoss: document.getElementById("packetLoss"),
+      room1: document.getElementById("room1"),
+      room2: document.getElementById("room2"),
+      bitrate1: document.getElementById("bitrate1"),
+      bitrate2: document.getElementById("bitrate2"),
+      line1Latency: document.getElementById("line1Latency"),
+      line2Latency: document.getElementById("line2Latency"),
+      peakUp: document.getElementById("peakUp"),
+      uptime: document.getElementById("uptime"),
+      cpuMini: document.getElementById("cpuMini"),
+      memMini: document.getElementById("memMini"),
+      upFill: document.getElementById("upFill"),
+      downFill: document.getElementById("downFill"),
+      cpuFill: document.getElementById("cpuFill"),
+      memFill: document.getElementById("memFill"),
+      latencyFill: document.getElementById("latencyFill"),
+      lossFill: document.getElementById("lossFill"),
+      logList: document.getElementById("logList")
+    };
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function drift(value, min, max, step) {
+      const next = value + randomBetween(-step, step);
+      return Math.min(max, Math.max(min, next));
+    }
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function timeStamp(date = new Date()) {
+      return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      elements.clock.textContent = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${timeStamp(now)}`;
+    }
+
+    function updateUptime() {
+      const totalMinutes = Math.floor((Date.now() - state.startedAt) / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      elements.uptime.textContent = `${pad(hours)}:${pad(minutes)}`;
+    }
+
+    function setFill(element, percent) {
+      element.style.setProperty("--fill", `${Math.min(100, Math.max(4, percent))}%`);
+    }
+
+    function updateMetrics() {
+      state.upSpeed = drift(state.upSpeed, 24.5, 34.8, 1.15);
+      state.downSpeed = drift(state.downSpeed, 78.0, 118.0, 3.6);
+      state.cpu = drift(state.cpu, 31, 64, 4.2);
+      state.memory = drift(state.memory, 56, 73, 1.35);
+      state.latency = Math.round(drift(state.latency, 14, 31, 2.2));
+      state.packetLoss = drift(state.packetLoss, 0.00, 0.18, 0.025);
+      state.room1 = Math.round(drift(state.room1, 1150, 1480, 26));
+      state.room2 = Math.round(drift(state.room2, 760, 990, 22));
+      state.bitrate1 = drift(state.bitrate1, 7.8, 9.4, 0.18);
+      state.bitrate2 = drift(state.bitrate2, 6.2, 7.7, 0.16);
+      state.line1Latency = Math.round(drift(state.line1Latency, 14, 26, 1.8));
+      state.line2Latency = Math.round(drift(state.line2Latency, 20, 37, 2.4));
+      state.peakUp = Math.max(state.peakUp, state.upSpeed + randomBetween(0.4, 2.1));
+
+      elements.upSpeed.textContent = state.upSpeed.toFixed(1);
+      elements.downSpeed.textContent = state.downSpeed.toFixed(1);
+      elements.cpu.textContent = Math.round(state.cpu);
+      elements.memory.textContent = Math.round(state.memory);
+      elements.latency.textContent = state.latency;
+      elements.packetLoss.textContent = state.packetLoss.toFixed(2);
+      elements.room1.textContent = state.room1;
+      elements.room2.textContent = state.room2;
+      elements.bitrate1.textContent = state.bitrate1.toFixed(1);
+      elements.bitrate2.textContent = state.bitrate2.toFixed(1);
+      elements.line1Latency.textContent = state.line1Latency;
+      elements.line2Latency.textContent = state.line2Latency;
+      elements.peakUp.textContent = state.peakUp.toFixed(1);
+      elements.cpuMini.textContent = Math.round(state.cpu);
+      elements.memMini.textContent = Math.round(state.memory);
+
+      setFill(elements.upFill, (state.upSpeed / 36) * 100);
+      setFill(elements.downFill, (state.downSpeed / 125) * 100);
+      setFill(elements.cpuFill, state.cpu);
+      setFill(elements.memFill, state.memory);
+      setFill(elements.latencyFill, (state.latency / 45) * 100);
+      setFill(elements.lossFill, (state.packetLoss / 0.25) * 100);
+      updateUptime();
+    }
+
+    function addLog(message) {
+      const entry = document.createElement("div");
+      entry.className = "log-entry";
+      entry.innerHTML = `<time>[${timeStamp()}]</time><span>${message}</span>`;
+      elements.logList.prepend(entry);
+
+      while (elements.logList.children.length > 9) {
+        elements.logList.removeChild(elements.logList.lastElementChild);
+      }
+    }
+
+    function seedLogs() {
+      const now = Date.now();
+      logs.slice(0, 7).forEach((message, index) => {
+        const date = new Date(now - (7 - index) * 18000);
+        const entry = document.createElement("div");
+        entry.className = "log-entry";
+        entry.innerHTML = `<time>[${timeStamp(date)}]</time><span>${message}</span>`;
+        elements.logList.prepend(entry);
+      });
+    }
+
+    updateClock();
+    updateMetrics();
+    seedLogs();
+
+    setInterval(updateClock, 1000);
+    setInterval(updateMetrics, 1000);
+    setInterval(() => {
+      const message = logs[Math.floor(Math.random() * logs.length)];
+      addLog(message);
+    }, 3200);
+  </script>
+</body>
+</html>

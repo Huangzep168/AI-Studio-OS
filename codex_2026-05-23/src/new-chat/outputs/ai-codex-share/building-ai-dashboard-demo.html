@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>楼宇经营与客户机会分析台 - Demo</title>
+  <style>
+    body{margin:0;font-family:"Microsoft YaHei",Arial,sans-serif;background:#f8fafc;color:#172033}
+    header{height:72px;background:#172033;color:white;display:flex;align-items:center;justify-content:space-between;padding:0 36px}
+    h1{font-size:24px;margin:0}.tag{color:#94a3b8;font-size:13px}
+    main{display:grid;grid-template-columns:280px 1fr;gap:28px;padding:28px 36px}
+    aside,.card{background:white;border:1px solid #d7dee8;border-radius:12px}
+    aside{padding:22px}.field{margin:22px 0 8px;color:#64748b;font-size:13px}.select{background:#f1f5f9;border:1px solid #d7dee8;border-radius:8px;padding:10px 14px}.chips span{display:inline-block;margin:6px 6px 0 0;padding:7px 14px;border-radius:20px;font-size:12px}
+    button{width:100%;border:0;border-radius:8px;padding:14px;margin-top:16px;font-weight:700;font-size:15px;cursor:pointer}
+    .primary{background:#172033;color:white}.secondary{background:#eef2ff;color:#3730a3}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.card{padding:22px}.label{font-size:13px;color:#64748b}.value{font-size:40px;font-weight:800;margin-top:10px}.green{color:#0f7a5a}.blue{color:#2563eb}.orange{color:#f59e0b}
+    .wide{grid-column:span 2}.section{display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-top:24px}.bar{height:12px;background:#e2e8f0;border-radius:999px;margin:10px 0 22px}.bar i{display:block;height:12px;border-radius:999px}
+    .flow{display:flex;align-items:center;justify-content:space-between}.node{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700}.arrow{height:3px;background:#94a3b8;flex:1;margin:0 14px}
+  </style>
+</head>
+<body>
+  <header><h1>楼宇经营与客户机会分析台</h1><div class="tag">Demo / AI generated</div></header>
+  <main>
+    <aside>
+      <h2>筛选条件</h2>
+      <div class="field">区域</div><div class="select">白鹅潭 / 芳村 / 荔湾</div>
+      <div class="field">目标行业</div><div class="chips"><span style="background:#dcfce7;color:#166534">科技服务</span><span style="background:#dbeafe;color:#1d4ed8">投资</span><span style="background:#fef3c7;color:#92400e">文创</span></div>
+      <div class="field">AI 任务</div><button class="primary">生成本周客户清单</button><button class="secondary">分析竞品租金变化</button>
+    </aside>
+    <section>
+      <div class="grid">
+        <div class="card"><div class="label">本月潜在客户</div><div class="value green">128</div><p>来自公开招聘、工商变更、政策名单、渠道线索</p></div>
+        <div class="card"><div class="label">重点跟进</div><div class="value blue">24</div><p>扩招、融资、搬迁、成本优化信号较强</p></div>
+        <div class="card"><div class="label">预计面积需求</div><div class="value orange">6,800m²</div><p>按岗位规模、企业阶段、行业密度估算</p></div>
+      </div>
+      <div class="section">
+        <div class="card">
+          <h2>客户机会排序</h2>
+          <p>企业 A：AI 应用服务 / 扩招 18 人 / 预算中高</p><div class="bar"><i style="width:86%;background:#0f7a5a"></i></div>
+          <p>企业 B：跨境电商 / 仓办一体 / 政策敏感</p><div class="bar"><i style="width:72%;background:#2563eb"></i></div>
+          <p>企业 C：投资管理 / 小面积独立办公 / 决策快</p><div class="bar"><i style="width:61%;background:#f59e0b"></i></div>
+        </div>
+        <div class="card"><h2>AI 下一步建议</h2><p>1. 先约企业 A 做成本测算</p><p>2. 给企业 B 准备园区政策包</p><p>3. 向渠道同步 80-150m² 产品</p><p>4. 每周自动更新竞品租金表</p></div>
+      </div>
+      <div class="card" style="margin-top:24px"><h2>市场信号流：从公开信息到行动清单</h2><div class="flow"><div class="node" style="background:#dcfce7;color:#166534">线索</div><div class="arrow"></div><div class="node" style="background:#dbeafe;color:#1d4ed8">清洗</div><div class="arrow"></div><div class="node" style="background:#fef3c7;color:#92400e">评分</div><div class="arrow"></div><div class="node" style="background:#ede9fe;color:#6d28d9">跟进</div><div class="arrow"></div><div class="node" style="background:#fee2e2;color:#991b1b">复盘</div></div></div>
+    </section>
+  </main>
+</body>
+</html>
