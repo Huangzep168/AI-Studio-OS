@@ -1,30 +1,29 @@
 #!/usr/bin/env python3
 """
-AI_WORKSPACE Watchdog - 最小化版本，专为 Windows 计划任务优化
+AI_WORKSPACE Watchdog - 只检测真正的新项目，跳过缓存目录
 """
-import sys
-import os
-import json
-import hashlib
-import subprocess
+import sys, os, json, hashlib, subprocess
 from pathlib import Path
 from datetime import datetime
 
-# 固定工作目录
 os.chdir('C:\\Users\\admin\\AI_WORKSPACE')
 AI_WORKSPACE = Path('C:\\Users\\admin\\AI_WORKSPACE')
 STATE_FILE = AI_WORKSPACE / '.watchdog_state.json'
 
 LOG = []
-
 def log(msg):
     LOG.append(f'[{datetime.now().strftime("%H:%M:%S")}] {msg}')
-    print(msg)
 
-WATCHLIST = {
-    'codex': Path('C:/Users/admin/Documents/Codex'),
-    'claude': Path('C:/Users/admin/Claude'),
-}
+# 只监控 Claude 用户工作文件目录（Codex 按日期分目录，不是项目）
+# 用户手工在 Codex/Claude 中创建的项目文件，后面会手动同步
+# 这个 watchdog 主要确保驾驶舱保持更新
+WATCH_DIRS = [
+    Path('C:/Users/admin/Claude'),
+]
+
+# 跳过这些目录名（不是项目）
+SKIP_NAMES = {'__pycache__', 'node_modules', '.git', '.venv', 'venv', 
+              '.mypy_cache', '.pytest_cache', '__MACOSX', '.tmp', '.cache'}
 
 def hash_dir(path):
     if not path.exists():
@@ -39,91 +38,70 @@ def hash_dir(path):
                 pass
     return h
 
-# Step 1: 检测新项目
-state = {}
-if STATE_FILE.exists():
-    state = json.loads(STATE_FILE.read_text(encoding='utf-8'))
-
-changes = []
-now = datetime.now().isoformat()
-
-for source, watch_dir in WATCHLIST.items():
-    if not watch_dir.exists():
-        log(f'{source} 目录不存在: {watch_dir}')
-        continue
-    for child in sorted(watch_dir.iterdir()):
-        if not child.is_dir() or child.name.startswith('.'):
+def detect_changes():
+    state = {}
+    if STATE_FILE.exists():
+        state = json.loads(STATE_FILE.read_text(encoding='utf-8'))
+    
+    changes = []
+    now = datetime.now().isoformat()
+    
+    for watch_dir in WATCH_DIRS:
+        if not watch_dir.exists():
+            log(f'目录不存在: {watch_dir}')
             continue
-        key = f'{source}:{child.name}'
-        current_hash = hash_dir(child)
-        prev_hash = state.get(key, {})
+        for child in sorted(watch_dir.iterdir()):
+            name = child.name
+            if not child.is_dir() or name.startswith('.') or name in SKIP_NAMES:
+                continue
+            # 跳过典型的非项目目录
+            if name.lower() in {'logs', 'temp', 'tmp', 'cache', 'backup', 'archive', 'templates', 'assets', 'images', 'fonts'}:
+                continue
+            # 跳过纯数字/日期名（Codex 的日期工作目录）
+            parts = name.replace('-', '').replace('_', '')
+            if parts.isdigit() and len(parts) >= 6:
+                continue
+                
+            key = f'claude:{name}'
+            current_hash = hash_dir(child)
+            prev_hash = state.get(key, {})
+            
+            if current_hash and current_hash != prev_hash:
+                proj_name = name.replace(' ', '_').replace('-', '_')
+                proj_path = AI_WORKSPACE / proj_name
+                
+                if not proj_path.exists():
+                    proj_path.mkdir(parents=True, exist_ok=True)
+                    log(f'新增项目: {proj_name}')
+                
+                (proj_path / 'PROJECT_CONTEXT.md').write_text(
+                    f'# {proj_name}\n\n## 项目目标\n来自 Claude 工作目录\n\n## 源路径\n- {child}\n\n## 当前状态\n- [ ] 人工确认项目描述\n\n## 备注\n由 AI_WORKSPACE Watchdog 自动发现\n', encoding='utf-8')
+                (proj_path / 'TASKS.md').write_text(
+                    '# TASKS.md\n\n## 待办\n- [ ] 了解项目需求 @Hermes\n\n## 进行中\n- (无)\n\n## 已完成\n- (无)\n\n## 暂停\n- (无)\n', encoding='utf-8')
+                
+                changes.append(f'项目: {proj_name}')
+                state[key] = current_hash
+    
+    STATE_FILE.write_text(json.dumps(state, ensure_ascii=False), encoding='utf-8')
+    return changes
 
-        if current_hash != prev_hash:
-            proj_name = f'{source}_{child.name}' if source == 'codex' else child.name.replace(' ', '_')
-            proj_path = AI_WORKSPACE / proj_name
+# 执行检测
+changes = detect_changes()
+for c in changes:
+    print(f'  -> {c}')
+if not changes:
+    print('  无变化')
 
-            if not proj_path.exists():
-                proj_path.mkdir(parents=True, exist_ok=True)
-
-            (proj_path / 'PROJECT_CONTEXT.md').write_text(
-                f'# {proj_name}\n\n## 项目目标\n来自 {source} 工作目录 {child.name}\n\n## 源路径\n- 原始目录: {child}\n- 同步到: {proj_path}\n\n## 当前状态\n- [ ] 人工确认项目描述\n\n## 备注\n由 AI_WORKSPACE Watchdog 自动发现于 {now}\n',
-                encoding='utf-8')
-
-            (proj_path / 'TASKS.md').write_text(
-                '# TASKS.md\n\n## 待办\n- [ ] 了解项目需求 @Hermes\n\n## 进行中\n- (无)\n\n## 已完成\n- (无)\n\n## 暂停\n- (无)\n',
-                encoding='utf-8')
-
-            dt = datetime.now().strftime('%Y-%m-%d %H:%M')
-            (proj_path / 'HANDOFF.md').write_text(
-                f'# HANDOFF.md\n\n## 日期: {dt}\n\n### 本次完成\n- 自动发现项目 ({source}: {child.name})\n\n### 下一步\n- 人工确认项目范围和目标\n',
-                encoding='utf-8')
-
-            (proj_path / 'CHANGELOG.md').write_text(
-                f'# CHANGELOG.md\n\n## [0.0.1] - {datetime.now().strftime("%Y-%m-%d")}\n\n### Added\n- 自动发现于 {source}: {child.name}\n',
-                encoding='utf-8')
-
-            # copy src
-            src_dir = proj_path / 'src'
-            for src_file in child.rglob('*'):
-                if src_file.is_file():
-                    rel = src_file.relative_to(child)
-                    parts = rel.parts
-                    if any(p.startswith('.') for p in parts):
-                        continue
-                    if any(x in parts for x in ['node_modules', '__pycache__', '.git']):
-                        continue
-                    if src_file.stat().st_size > 1024 * 1024:
-                        continue
-                    try:
-                        dst = src_dir / rel
-                        dst.parent.mkdir(parents=True, exist_ok=True)
-                        dst.write_bytes(src_file.read_bytes())
-                    except:
-                        pass
-
-            changes.append(f'新项目: {proj_name} ({source})')
-            state[key] = current_hash
-
-STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding='utf-8')
-
-if changes:
-    for c in changes:
-        log(f'  -> {c}')
-else:
-    log('  无变化')
-
-# Step 2: Git commit
+# Git commit
 if changes:
     try:
         subprocess.run(['git', '-C', str(AI_WORKSPACE), 'add', '-A'], capture_output=True, timeout=10)
         r = subprocess.run(['git', '-C', str(AI_WORKSPACE), 'diff', '--cached', '--quiet'], capture_output=True, timeout=10)
         if r.returncode != 0:
-            msg = f'chore: watchdog auto-sync - {"; ".join(changes[:3])}'
+            msg = f'chore: watchdog auto-sync - {"; ".join(changes[:2])}'
             subprocess.run(['git', '-C', str(AI_WORKSPACE), 'commit', '-m', msg], capture_output=True, text=True, timeout=10)
-            log('  Git committed')
+            print('  Git committed')
     except Exception as e:
-        log(f'  Git error: {e}')
+        print(f'  Git error: {e}')
 
-# 写日志
-log('完成')
-(AI_WORKSPACE / '.watchdog_last_run.log').write_text('\n'.join(LOG), encoding='utf-8')
+print('完成')

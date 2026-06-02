@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Studio OS — 驾驶舱</title>
+<title>AI Studio OS - 驾驶舱</title>
 <link rel="icon" href="data:,">
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--ink:#e6edf3;--muted:#8b949e;--green:#3fb950;--cyan:#58a6ff;--amber:#d29922;--red:#f85149;--purple:#bc8cff}
@@ -57,8 +57,8 @@ h1 small{font-size:12px;color:var(--muted);font-weight:400}
 <body>
 <div class="wrap">
 <header>
-  <div><h1>⚡ AI Studio OS <small>驾驶舱</small></h1><span style="font-size:11px;color:var(--muted)">你 · Hermes · Codex · Claude · DeepSeek · ChatGPT</span></div>
-  <div class="hr">2026-06-02 14:40<br><span class="rmt">origin	https://github.com/Huangzep168/AI-Studio-OS.git (fetch)</span></div>
+  <div><h1>&#x26A1; AI Studio OS <small>驾驶舱</small></h1><span style="font-size:11px;color:var(--muted)">你 - Hermes - Codex - Claude - DeepSeek - ChatGPT</span></div>
+  <div class="hr">2026-06-02 15:32<br><span class="rmt">origin	https://github.com/Huangzep168/AI-Studio-OS.git (fetch)</span></div>
 </header>
 <div class="stats" id="sRow">
   <div class="stat"><span class="lbl">项目总数</span><div class="num cy" id="sT">--</div></div>
@@ -66,13 +66,13 @@ h1 small{font-size:12px;color:var(--muted);font-weight:400}
   <div class="stat"><span class="lbl">待启动</span><div class="num am" id="sP">--</div></div>
   <div class="stat"><span class="lbl">已完成</span><div class="num pl" id="sC">--</div></div>
   <div class="stat"><span class="lbl">待办任务</span><div class="num rd" id="sTk">--</div></div>
-  <div class="stat"><span class="lbl">提交次数</span><div class="num gn">1</div></div>
+  <div class="stat"><span class="lbl">提交次数</span><div class="num gn">4</div></div>
 </div>
 <div class="grid" id="pGrid"></div>
-<div class="tl"><h2>📋 Git 最近提交</h2><div id="tlBody"></div></div>
+<div class="tl"><h2>&#x1F4CB; Git 最近提交</h2><div id="tlBody"></div></div>
 </div>
 <script>
-const D = {"01_出租率系统": {"id": "01_出租率系统", "name": "01_出租率系统", "status": "active", "icon": "📊", "tasks_todo": 4, "tasks_done": 1, "goal": "", "next_step": "提交 Git 仓库；启动 02 合同整理系统；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "02_合同整理系统": {"id": "02_合同整理系统", "name": "02_合同整理系统", "status": "active", "icon": "📝", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "03_58运营系统": {"id": "03_58运营系统", "name": "03_58运营系统", "status": "active", "icon": "🏠", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "04_商业地产获客平台": {"id": "04_商业地产获客平台", "name": "04_商业地产获客平台", "status": "active", "icon": "🎯", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "05_AI工作流系统": {"id": "05_AI工作流系统", "name": "05_AI工作流系统", "status": "active", "icon": "🤖", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "06_REITs研究": {"id": "06_REITs研究", "name": "06_REITs研究", "status": "active", "icon": "💰", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动；", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "AI_STUDIO_OS": {"id": "AI_STUDIO_OS", "name": "AI_STUDIO_OS", "status": "pending", "icon": "⚡", "tasks_todo": 0, "tasks_done": 0, "goal": "", "next_step": "", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}};
+const D = {"01_出租率系统": {"id": "01_出租率系统", "name": "01_出租率系统", "status": "active", "icon": "📊", "tasks_todo": 4, "tasks_done": 1, "goal": "", "next_step": "提交 Git 仓库; 启动 02 合同整理系统; ", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "02_合同整理系统": {"id": "02_合同整理系统", "name": "02_合同整理系统", "status": "active", "icon": "📝", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动; ", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "03_58运营系统": {"id": "03_58运营系统", "name": "03_58运营系统", "status": "active", "icon": "🏠", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动; ", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "04_商业地产获客平台": {"id": "04_商业地产获客平台", "name": "04_商业地产获客平台", "status": "active", "icon": "🎯", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动; ", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "05_AI工作流系统": {"id": "05_AI工作流系统", "name": "05_AI工作流系统", "status": "active", "icon": "🤖", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动; ", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "06_REITs研究": {"id": "06_REITs研究", "name": "06_REITs研究", "status": "active", "icon": "💰", "tasks_todo": 1, "tasks_done": 0, "goal": "", "next_step": "等待启动; ", "git_log": "b42b5e7 feat: AI_WORKSPACE 初始搭建"}, "AI_STUDIO_OS": {"id": "AI_STUDIO_OS", "name": "AI_STUDIO_OS", "status": "pending", "icon": "⚡", "tasks_todo": 0, "tasks_done": 0, "goal": "", "next_step": "人工确认 02-06 项目需求; Codex/Claude 新项目做完了会自动同步到驾驶舱; ", "git_log": "817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 "}, "Artifacts": {"id": "Artifacts", "name": "Artifacts", "status": "active", "icon": "📁", "tasks_todo": 1, "tasks_done": 0, "goal": "来自 claude 工作目录 Artifacts", "next_step": "人工确认项目范围和目标; ", "git_log": "817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 "}, "codex_2026-05-23": {"id": "codex_2026-05-23", "name": "codex_2026-05-23", "status": "active", "icon": "📁", "tasks_todo": 1, "tasks_done": 0, "goal": "来自 codex 工作目录 2026-05-23", "next_step": "人工确认项目范围和目标; ", "git_log": "817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 "}, "codex_2026-05-25": {"id": "codex_2026-05-25", "name": "codex_2026-05-25", "status": "active", "icon": "📁", "tasks_todo": 1, "tasks_done": 0, "goal": "来自 codex 工作目录 2026-05-25", "next_step": "人工确认项目范围和目标; ", "git_log": "817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 "}, "codex_2026-05-27": {"id": "codex_2026-05-27", "name": "codex_2026-05-27", "status": "active", "icon": "📁", "tasks_todo": 1, "tasks_done": 0, "goal": "来自 codex 工作目录 2026-05-27", "next_step": "人工确认项目范围和目标; ", "git_log": "817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 "}, "codex_2026-05-28": {"id": "codex_2026-05-28", "name": "codex_2026-05-28", "status": "active", "icon": "📁", "tasks_todo": 1, "tasks_done": 0, "goal": "来自 codex 工作目录 2026-05-28", "next_step": "人工确认项目范围和目标; ", "git_log": "817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 "}, "codex_2026-05-30": {"id": "codex_2026-05-30", "name": "codex_2026-05-30", "status": "active", "icon": "📁", "tasks_todo": 1, "tasks_done": 0, "goal": "来自 codex 工作目录 2026-05-30", "next_step": "人工确认项目范围和目标; ", "git_log": "817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 "}, "Scheduled": {"id": "Scheduled", "name": "Scheduled", "status": "active", "icon": "📁", "tasks_todo": 1, "tasks_done": 0, "goal": "来自 claude 工作目录 Scheduled", "next_step": "人工确认项目范围和目标; ", "git_log": "817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 "}};
 const P = Object.values(D);
 document.getElementById('sT').textContent = P.length;
 document.getElementById('sA').textContent = P.filter(p=>p.status==='active').length;
@@ -86,15 +86,19 @@ P.forEach(p => {
   const bc = pc >= 80 ? 'gn' : pc >= 30 ? 'am' : '';
   const bd = p.status==='active'?'act':p.status==='completed'?'cmp':'pen';
   const bt = p.status==='active'?'● 进行中':p.status==='completed'?'● 已完成':'○ 待启动';
-  const nx = p.next_step ? '<div class="nxt">→ <b>下一步:</b> '+p.next_step+'</div>' : '';
+  const nx = p.next_step ? '<div class="nxt">&#x2192; <b>下一步:</b> '+p.next_step+'</div>' : '';
   const gl = p.git_log ? '<div class="gitl">'+p.git_log+'</div>' : '';
   const gl2 = p.goal ? '<div class="goal">'+p.goal.slice(0,120)+'</div>' : '';
   g.innerHTML += '<div class="card '+p.status+'"><div class="c-hd"><div class="ti"><span class="ic">'+p.icon+'</span>'+p.name+'</div><span class="bdg '+bd+'">'+bt+'</span></div><div class="c-bd">'+gl2+nx+'<div class="bar"><div class="bt"><div class="bf '+bc+'" style="width:'+pc+'%"></div></div><span class="btx">'+p.tasks_done+'/'+al+' ('+pc+'%)</span></div>'+gl+'</div></div>';
 });
-const commits = `b42b5e7 feat: AI_WORKSPACE 初始搭建`;
+const commits = `817aefd chore: watchdog auto-sync - 新项目: codex_2026-05-23 (codex); 新项目: codex_2026-05-25 (codex); 新项目: codex_2026-05-27 (codex)
+72e5594 chore: add watchdog script + cron auto-sync
+275f654 feat: 驾驶舱 V1 - 动态项目总览 + Git 时间线
+b42b5e7 feat: AI_WORKSPACE 初始搭建`;
 const tlb = document.getElementById('tlBody');
 if (commits.trim()) {
-  tlb.innerHTML = commits.split('\n').filter(Boolean).map(l => {
+  tlb.innerHTML = commits.split('
+').filter(Boolean).map(l => {
     const m = l.match(/^([a-f0-9]+) (.+)$/);
     return m ? '<div class="tli"><div class="tld c"></div><div class="tlc"><div class="msg"><code style="color:var(--amber)">'+m[1]+'</code> '+m[2]+'</div></div></div>' : '';
   }).join('');
